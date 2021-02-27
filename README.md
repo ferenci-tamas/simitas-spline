@@ -2,13 +2,13 @@
 
 Az elektronikus jegyzet elérhetősége: [Ferenci Tamás: Simítás, spline-regresszió, additív modellek (jegyzet)](https://tamas-ferenci.github.io/FerenciTamas_SimitasSplineRegresszioAdditivModellek/).
 
-Közvetlenül is letölthető [PDF formátumban](https://github.com/tamas-ferenci/FerenciTamas_SimitasSplineRegresszioAdditivModellek/raw/master/docs/FerenciTamas_SimitasSplineRegresszioAdditivModellek.pdf) valamint [EPUB formátumban](https://github.com/tamas-ferenci/FerenciTamas_SimitasSplineRegresszioAdditivModellek/raw/master/docs/FerenciTamas_SimitasSplineRegresszioAdditivModellek.epub).
+Közvetlenül is letölthető [PDF formátumban](https://github.com/tamas-ferenci/FerenciTamas_SimitasSplineRegresszioAdditivModellek/raw/main/docs/FerenciTamas_SimitasSplineRegresszioAdditivModellek.pdf) valamint [EPUB formátumban](https://github.com/tamas-ferenci/FerenciTamas_SimitasSplineRegresszioAdditivModellek/raw/main/docs/FerenciTamas_SimitasSplineRegresszioAdditivModellek.epub).
 
 # Oktatási segédanyagok
 
 ## Diasorok
 
-Az anyag vázlatát tartalmazó diasor letölthetőek (nyomtatható formátumban, a diákon nincs animáció): [FerenciTamas_SimitasSplineRegresszioAdditivModellek.pdf](https://github.com/tamas-ferenci/FerenciTamas_SimitasSplineRegresszioAdditivModellek/raw/master/docs/FerenciTamas_SimitasSplineRegresszioAdditivModellek_handout.pdf).
+Az anyag vázlatát tartalmazó diasor letölthetőek (nyomtatható formátumban, a diákon nincs animáció): [FerenciTamas_SimitasSplineRegresszioAdditivModellek_handout.pdf](https://github.com/tamas-ferenci/FerenciTamas_SimitasSplineRegresszioAdditivModellek/raw/main/docs/FerenciTamas_SimitasSplineRegresszioAdditivModellek_handout.pdf).
 
 ## R-kódok
 
