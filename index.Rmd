@@ -2,7 +2,7 @@
 title: "Simítás, spline-regresszió, additív modellek"
 short-title: "Simítás, spline-regresszió, additív modellek"
 toc-title: "Tartalom"
-author: "Ferenci Tamás, \\href{mailto:tamas.ferenci@medstat.hu}{tamas.ferenci@medstat.hu}"
+author: Ferenci Tamás, tamas.ferenci@medstat.hu
 date: '`r format(Sys.time(), "%Y\\. %B %e\\.")`'
 site: bookdown::bookdown_site
 documentclass: book
