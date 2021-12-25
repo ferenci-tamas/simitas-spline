@@ -40,3 +40,4 @@ vignettes/*.pdf
 
 # Sajat
 _bookdown_files
+*.log
