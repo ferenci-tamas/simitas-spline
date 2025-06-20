@@ -10,7 +10,7 @@ Ajánlott irodalom: Simon N. Wood: Generalized Additive Models: an introduction 
 
 A jegyzettel kapcsolatban minden visszajelzést, véleményt, kritikát a lehető legnagyobb örömmel veszek a [tamas.ferenci@medstat.hu](tamas.ferenci@medstat.hu) email-címen.
 
-A jegyzet weboldala [https://github.com/ferenci-tamas/simitas-spline-additiv-modell](https://github.com/ferenci-tamas/simitas-spline-additiv-modell) címen érhető el.
+A jegyzet weboldala [https://github.com/ferenci-tamas/simitas-spline](https://github.com/ferenci-tamas/simitas-spline) címen érhető el.
 
 Ehhez az anyaghoz csak a `data.table` és a `ggplot2` könyvtárakra lesz szükségünk (illetve beállítjuk a véletlenszám-generátor seed-jét^[A véletlenszám-generátort használó kódok eredménye szükségképp el fog térni bármely két futtatás között, így például az is el fog térni egymástól ami itt látható, és amit valaki kap, ha lefuttatja ugyanezt a kódot. Hogy ezt kiküszöböljük, és az olvasó pontosan ugyanazt az eredményt kapja, érdemes a seed-et beállítani: ezt követően a pontosan ugyanúgy lefuttatott kód ugyanazt az eredményt kell, hogy adja. (Természetesen a véletlenszám-generálásnál kapott számok továbbra is véletlenek lesznek -- amennyire eredetileg is azok... -- de ugyanabban a sorrendben fognak jönni.)] a reprodukálhatóság kedvéért):
 
