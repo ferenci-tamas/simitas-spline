@@ -9,7 +9,7 @@
 <meta name="author" content="Ferenci Tamás">
 <meta name="description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
 
-<title>Simítás, spline-regresszió, additív modellek</title>
+<title>Simítás, spline-ok, additív modellek</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -107,14 +107,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }</script>
 
 
-<meta property="og:title" content="Simítás, spline-regresszió, additív modellek">
+<meta property="og:title" content="Simítás, spline-ok, additív modellek">
 <meta property="og:description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
-<meta property="og:image" content="https://ferenci-tamas.github.io/simitas-spline-additiv-modell/cover.jpg">
-<meta property="og:site_name" content="Simítás, spline-regresszió, additív modellek">
+<meta property="og:image" content="https://ferenci-tamas.github.io/simitas-spline/cover.jpg">
+<meta property="og:site_name" content="Simítás, spline-ok, additív modellek">
 <meta property="og:image:alt" content="Simítógörbék">
-<meta name="twitter:title" content="Simítás, spline-regresszió, additív modellek">
+<meta name="twitter:title" content="Simítás, spline-ok, additív modellek">
 <meta name="twitter:description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
-<meta name="twitter:image" content="https://ferenci-tamas.github.io/simitas-spline-additiv-modell/cover.jpg">
+<meta name="twitter:image" content="https://ferenci-tamas.github.io/simitas-spline/cover.jpg">
 <meta name="twitter:image:alt" content="Simítógörbék">
 <meta name="twitter:card" content="summary_large_image">
 </head>
@@ -143,20 +143,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="./">Simítás, spline-regresszió, additív modellek</a> 
+      <a href="./">Simítás, spline-ok, additív modellek</a> 
         <div class="sidebar-tools-main tools-wide">
-    <a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell" title="Forráskód" class="quarto-navigation-tool px-1" aria-label="Forráskód"><i class="bi bi-github"></i></a>
+    <a href="https://github.com/ferenci-tamas/simitas-spline" title="Forráskód" class="quarto-navigation-tool px-1" aria-label="Forráskód"><i class="bi bi-github"></i></a>
     <div class="dropdown">
       <a href="" title="Letöltés" id="quarto-navigation-tool-dropdown-0" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" role="link" aria-label="Letöltés"><i class="bi bi-download"></i></a>
       <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-0">
           <li>
-            <a class="dropdown-item sidebar-tools-main-item" href="./ferenci-tamas-simitas-spline-additiv-modell.pdf">
+            <a class="dropdown-item sidebar-tools-main-item" href="./ferenci-tamas-simitas-spline.pdf">
               <i class="bi bi-file-pdf pe-1"></i>
             Letöltés PDF
             </a>
           </li>
           <li>
-            <a class="dropdown-item sidebar-tools-main-item" href="./ferenci-tamas-simitas-spline-additiv-modell.epub">
+            <a class="dropdown-item sidebar-tools-main-item" href="./ferenci-tamas-simitas-spline.epub">
               <i class="bi bi-journal pe-1"></i>
             Letöltés ePub
             </a>
@@ -238,14 +238,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#előszó" id="toc-előszó" class="nav-link active" data-scroll-target="#előszó">Előszó</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/edit/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/blob/main/index.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline/edit/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline/blob/main/index.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Simítás, spline-regresszió, additív modellek</h1>
+<h1 class="title">Simítás, spline-ok, additív modellek</h1>
 </div>
 
 <div>
@@ -281,7 +281,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <section id="előszó" class="level1 unnumbered">
-<h1 class="unnumbered">Előszó</h1><p><img src="cover.jpg" title="Simítás, spline-regresszió, additív modellek" class="quarto-cover-image nolightbox img-fluid" alt="Simítógörbék"></p>
+<h1 class="unnumbered">Előszó</h1><p><img src="cover.jpg" title="Simítás, spline-ok, additív modellek" class="quarto-cover-image nolightbox img-fluid" alt="Simítógörbék"></p>
 <p>Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.</p>
 <p>Ajánlott irodalom: Simon N. Wood: Generalized Additive Models: an introduction with R (Chapman &amp; Hall/CRC, Texts in Statistical Science sorozat, 2. kiadás, ISBN 9781498728331, 2017).</p>
 <p>A jegyzettel kapcsolatban minden visszajelzést, véleményt, kritikát a lehető legnagyobb örömmel veszek a <a href="tamas.ferenci@medstat.hu">tamas.ferenci@medstat.hu</a> email-címen.</p>
@@ -375,7 +375,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     }
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
       var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/ferenci-tamas\.github\.io\/simitas-spline-additiv-modell");
+        var filterRegex = new RegExp("https:\/\/ferenci-tamas\.github\.io\/simitas-spline");
       var isInternal = (href) => {
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
@@ -712,7 +712,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </div>
 </nav>
 </div> <!-- /content -->
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/edit/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/blob/main/index.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></div></div></footer><script type="text/javascript">
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline/edit/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline/blob/main/index.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></div></div></footer><script type="text/javascript">
 var sc_project=12422840; 
 var sc_invisible=1; 
 var sc_security="d32cce24"; 

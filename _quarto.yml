@@ -9,7 +9,7 @@ filters:
   - pandoc-quotes.lua
 
 book:
-  title: "Simítás, spline-regresszió, additív modellek"
+  title: "Simítás, spline-ok, additív modellek"
   author:
     - name:
         given: Tamás
@@ -27,12 +27,12 @@ book:
   image-alt: "Simítógörbék"
   open-graph: true
   twitter-card: true
-  site-url: https://ferenci-tamas.github.io/simitas-spline-additiv-modell
-  repo-url: https://github.com/ferenci-tamas/simitas-spline-additiv-modell
+  site-url: https://ferenci-tamas.github.io/simitas-spline
+  repo-url: https://github.com/ferenci-tamas/simitas-spline
   repo-actions: [edit, source, issue]
   description: "Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik."
   language: hu-HU
-  output-file: "ferenci-tamas-simitas-spline-additiv-modell"
+  output-file: "ferenci-tamas-simitas-spline"
   chapters:
     - index.qmd
     - LOESS.qmd
