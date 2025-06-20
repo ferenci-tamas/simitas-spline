@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="hu-HU" xml:lang="hu-HU"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.31">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
+
+<title>1&nbsp; A LOESS simító – Simítás, spline-regresszió, additív modellek</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./spline.html" rel="next">
+<link href="./index.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-e1a5c8363afafaef2c763b6775fbf3ca.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-364982630eef5352dd1537128a8ed5cb.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "Nincs találat",
+    "search-matching-documents-text": "találat",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "További találatok elrejtése",
+    "search-more-match-text": "további találat ebben a dokumentumban",
+    "search-more-matches-text": "további találat ebben a dokumentumban",
+    "search-clear-button-title": "Törlés",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Mégse",
+    "search-submit-button-title": "Keresés",
+    "search-label": "Keresés"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<meta property="og:title" content="1&nbsp; A LOESS simító – Simítás, spline-regresszió, additív modellek">
+<meta property="og:description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
+<meta property="og:image" content="https://ferenci-tamas.github.io/simitas-spline-additiv-modell/LOESS_files/figure-html/unnamed-chunk-2-1.png">
+<meta property="og:site_name" content="Simítás, spline-regresszió, additív modellek">
+<meta property="og:image:height" content="960">
+<meta property="og:image:width" content="1344">
+<meta name="twitter:title" content="1&nbsp; A LOESS simító – Simítás, spline-regresszió, additív modellek">
+<meta name="twitter:description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
+<meta name="twitter:image" content="https://ferenci-tamas.github.io/simitas-spline-additiv-modell/LOESS_files/figure-html/unnamed-chunk-2-1.png">
+<meta name="twitter:image-height" content="960">
+<meta name="twitter:image-width" content="1344">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./LOESS.html"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">A LOESS simító</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Keresés" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Simítás, spline-regresszió, additív modellek</a> 
+        <div class="sidebar-tools-main tools-wide">
+    <a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell" title="Forráskód" class="quarto-navigation-tool px-1" aria-label="Forráskód"><i class="bi bi-github"></i></a>
+    <div class="dropdown">
+      <a href="" title="Letöltés" id="quarto-navigation-tool-dropdown-0" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" role="link" aria-label="Letöltés"><i class="bi bi-download"></i></a>
+      <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-0">
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="./ferenci-tamas-simitas-spline-additiv-modell.pdf">
+              <i class="bi bi-file-pdf pe-1"></i>
+            Letöltés PDF
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="./ferenci-tamas-simitas-spline-additiv-modell.epub">
+              <i class="bi bi-journal pe-1"></i>
+            Letöltés ePub
+            </a>
+          </li>
+      </ul>
+    </div>
+    <div class="dropdown">
+      <a href="" title="Megosztás" id="quarto-navigation-tool-dropdown-1" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" role="link" aria-label="Megosztás"><i class="bi bi-share"></i></a>
+      <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-1">
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://twitter.com/intent/tweet?url=|url|">
+              <i class="bi bi-twitter pe-1"></i>
+            Twitter
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://www.facebook.com/sharer/sharer.php?u=|url|">
+              <i class="bi bi-facebook pe-1"></i>
+            Facebook
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://www.linkedin.com/sharing/share-offsite/?url=|url|">
+              <i class="bi bi-linkedin pe-1"></i>
+            LinkedIn
+            </a>
+          </li>
+      </ul>
+    </div>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Keresés"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Előszó</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./LOESS.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">A LOESS simító</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./spline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Spline fogalma, lineáris regressziótól a spline-regresszióig</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./spline-regresszio.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Spline-regresszió becslése bázisfüggvényekkel, penalizáltan</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./additiv-modell.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Additív modellek</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Tartalomjegyzék</h2>
+   
+  <ul>
+  <li><a href="#motiváció" id="toc-motiváció" class="nav-link active" data-scroll-target="#motiváció"><span class="header-section-number">1.1</span> Motiváció</a></li>
+  <li><a href="#a-loess-simító-alapgondolata" id="toc-a-loess-simító-alapgondolata" class="nav-link" data-scroll-target="#a-loess-simító-alapgondolata"><span class="header-section-number">1.2</span> A LOESS simító alapgondolata</a></li>
+  <li><a href="#lokalitás" id="toc-lokalitás" class="nav-link" data-scroll-target="#lokalitás"><span class="header-section-number">1.3</span> Lokalitás</a></li>
+  <li><a href="#polinomiális-regresszió" id="toc-polinomiális-regresszió" class="nav-link" data-scroll-target="#polinomiális-regresszió"><span class="header-section-number">1.4</span> Polinomiális regresszió</a></li>
+  <li><a href="#összerakva-az-építőelemeket-lokális-polinomiális-regressziókkal-közelítés" id="toc-összerakva-az-építőelemeket-lokális-polinomiális-regressziókkal-közelítés" class="nav-link" data-scroll-target="#összerakva-az-építőelemeket-lokális-polinomiális-regressziókkal-közelítés"><span class="header-section-number">1.5</span> Összerakva az építőelemeket: lokális polinomiális regressziókkal közelítés</a></li>
+  <li><a href="#a-paraméterek-megválasztásának-hatása-lokalitás" id="toc-a-paraméterek-megválasztásának-hatása-lokalitás" class="nav-link" data-scroll-target="#a-paraméterek-megválasztásának-hatása-lokalitás"><span class="header-section-number">1.6</span> A paraméterek megválasztásának hatása: lokalitás</a></li>
+  <li><a href="#a-paraméterek-megválasztásának-hatása-a-polinom-fokszáma" id="toc-a-paraméterek-megválasztásának-hatása-a-polinom-fokszáma" class="nav-link" data-scroll-target="#a-paraméterek-megválasztásának-hatása-a-polinom-fokszáma"><span class="header-section-number">1.7</span> A paraméterek megválasztásának hatása: a polinom fokszáma</a>
+  <ul class="collapse">
+  <li><a href="#kitérő-polinomiális-regresszió-illesztésének-szintaktikája-r-alatt" id="toc-kitérő-polinomiális-regresszió-illesztésének-szintaktikája-r-alatt" class="nav-link" data-scroll-target="#kitérő-polinomiális-regresszió-illesztésének-szintaktikája-r-alatt"><span class="header-section-number">1.7.1</span> Kitérő: polinomiális regresszió illesztésének szintaktikája R alatt</a></li>
+  <li><a href="#polinom-fokszámának-változtatása" id="toc-polinom-fokszámának-változtatása" class="nav-link" data-scroll-target="#polinom-fokszámának-változtatása"><span class="header-section-number">1.7.2</span> Polinom fokszámának változtatása</a></li>
+  </ul></li>
+  <li><a href="#a-paraméterek-megválasztása" id="toc-a-paraméterek-megválasztása" class="nav-link" data-scroll-target="#a-paraméterek-megválasztása"><span class="header-section-number">1.8</span> A paraméterek megválasztása</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/edit/main/LOESS.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/blob/main/LOESS.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">A LOESS simító</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="motiváció" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="motiváció"><span class="header-section-number">1.1</span> Motiváció</h2>
+<p>Első lépésben előkészítünk egy demonstrációs adatbázist. Szimulált adatokat fogunk használni (zajos szinusz), így mi is tudni fogjuk, hogy mi az igazság, a valódi függvény amiből a pontok jöttek:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">101</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>SimData <span class="ot">&lt;-</span> <span class="fu">data.table</span>(<span class="at">x =</span> (<span class="dv">1</span><span class="sc">:</span>n) <span class="sc">+</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, <span class="fl">0.1</span>))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>SimData<span class="sc">$</span>y <span class="ot">&lt;-</span> <span class="fu">sin</span>(SimData<span class="sc">$</span>x<span class="sc">/</span>n<span class="sc">*</span>(<span class="dv">2</span><span class="sc">*</span>pi))</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>SimData<span class="sc">$</span>yobs <span class="ot">&lt;-</span> SimData<span class="sc">$</span>y <span class="sc">+</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, <span class="fl">0.2</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(SimData, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> yobs)) <span class="sc">+</span> <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> y), <span class="at">color =</span> <span class="st">"orange"</span>, <span class="at">lwd =</span> <span class="dv">1</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>p</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Paraméteres görbeillesztésnél fel kell tételeznünk egy függvényformát (ti. ami a pontok mögött van a valóságban). Például, hogy lineáris:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_smooth</span>(<span class="at">formula =</span> y<span class="sc">~</span>x, <span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Ez az ábra jól mutatja ennek a fő problémáját: hogy ezt a feltételezést el is ronthatjuk! Természetesen vannak diagnosztikai eszközök ennek felderítésére, például megnézhetjük a reziduumokat az <span class="math inline">\(x\)</span> függvényében, ami a fenti esetben nagyon csúnyán fog kinézni, és ez alapján kereshetünk jobb függvényformát, de gyökerestül csak az oldja meg a problémát, ha olyan módszert találnánk, ami a nélkül működik, hogy egyáltalán fel kelljen tételeznie – bármilyen – függvényformát. Ezt valósítják meg a simítási eljárások. (Lényegében nemparaméteres regresszióról van szó.)</p>
+<p>Annak az előnynek, hogy nem kell ilyen feltételezéssel élnünk (és így azt el sem ronthatjuk), természetesen ára van: kevésbé hatásosan becsülhető, mint a paraméteres illesztés, nincsenek számszerű paramétereink (aminek esetleg tárgyterületi interpretációt lehet adni), csak ábrát tudunk rajzolni, és végezetül extrapoláció sem lehetséges, legalábbis nem triviálisan.</p>
+</section>
+<section id="a-loess-simító-alapgondolata" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="a-loess-simító-alapgondolata"><span class="header-section-number">1.2</span> A LOESS simító alapgondolata</h2>
+<p>Az egyik legnépszerűbb megoldás a LOESS (locally weighted scatterplot smoothing, néha LOWESS, vagy Savitzky–Golay szűrő), melynek alapgondolata, hogy végigmegy az <span class="math inline">\(x\)</span>-változó releváns tartományán, és minden értékre meghatározza a pontfelhő ottani, tehát lokális közelítését, egy polinomális regresszióból. Utána az egész simítást ezekből a darabkákból építi fel.</p>
+<p>Legyen például a vizsgált érték a <span class="math inline">\(23.5\)</span>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">23.5</span>, <span class="at">color =</span> <span class="st">"red"</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="lokalitás" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="lokalitás"><span class="header-section-number">1.3</span> Lokalitás</h2>
+<p>A lokalitást két eszközzel érjük el. Az egyik, hogy nem használjuk az összes pontot, csak a vizsgált értékhez legközelebb eső <span class="math inline">\(\alpha\)</span> hányadát (ha ez nem egész lenne, akkor felső egészrészt veszünk); ezt a paramétert szokták <code>span</code>-nek is nevezni. Például, ha ez 75%, akkor a távolság ameddig figyelembe vesszük a pontokat:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>span <span class="ot">&lt;-</span> <span class="fl">0.75</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>n<span class="sc">*</span>span</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 75.75</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ceiling</span>(n<span class="sc">*</span>span)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 76</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sort</span>(<span class="fu">abs</span>(SimData<span class="sc">$</span>x<span class="fl">-23.5</span>))[<span class="fu">ceiling</span>(n<span class="sc">*</span>span)]</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 52.52914</code></pre>
+</div>
+</div>
+<p>A másik eszköz, hogy még a megtartott pontokon belül is súlyozunk: minél távolabb esik egy pont a vizsgált értéktől annál kisebb lesz a súlya. Általában a trikubikus súlyfüggvényt használjuk:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>tricube <span class="ot">&lt;-</span> <span class="cf">function</span>(u, t) <span class="fu">ifelse</span>(u<span class="sc">&lt;</span>t, (<span class="dv">1</span><span class="sc">-</span>(u<span class="sc">/</span>t)<span class="sc">^</span><span class="dv">3</span>)<span class="sc">^</span><span class="dv">3</span>, <span class="dv">0</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">curve</span>(<span class="fu">tricube</span>(x, <span class="dv">2</span>), <span class="at">to =</span> <span class="dv">3</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>(A fenti definícióval természetesen a kétféle lépés együtt van benne a <code>tricube</code> függvényben.)</p>
+<p>A felhasznált pontok:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>SimData<span class="sc">$</span>w <span class="ot">&lt;-</span> <span class="fu">tricube</span>(<span class="fu">abs</span>(SimData<span class="sc">$</span>x<span class="fl">-23.5</span>), <span class="fu">sort</span>(<span class="fu">abs</span>(SimData<span class="sc">$</span>x<span class="fl">-23.5</span>))[<span class="fu">ceiling</span>(n<span class="sc">*</span>span)])</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(SimData, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> yobs, <span class="at">color =</span> w<span class="sc">&gt;</span><span class="dv">0</span>)) <span class="sc">+</span> <span class="fu">geom_point</span>()</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>A súlyozás:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(SimData, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> yobs, <span class="at">color =</span> w)) <span class="sc">+</span> <span class="fu">geom_point</span>()</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="polinomiális-regresszió" class="level2" data-number="1.4">
+<h2 data-number="1.4" class="anchored" data-anchor-id="polinomiális-regresszió"><span class="header-section-number">1.4</span> Polinomiális regresszió</h2>
+<p>A leszűkített és átsúlyozott ponthalmazra – ezt most tehát egyben tartalmazza a <code>w</code> – egy polinomális regressziót illesztünk.</p>
+<p>Legegyszerűbb esetben ez lineáris regresszió:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(yobs <span class="sc">~</span> x, <span class="at">weights =</span> w, <span class="at">data =</span> SimData)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">23.5</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">intercept =</span> <span class="fu">coef</span>(fit)[<span class="dv">1</span>], <span class="at">slope =</span> <span class="fu">coef</span>(fit)[<span class="dv">2</span>])</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Az illesztett regressziónak azt a pontját vesszük ki, ami a vizsgált érték volt! Az előbbi példát folytatva:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_abline</span>(<span class="at">intercept =</span> <span class="fu">coef</span>(fit)[<span class="dv">1</span>], <span class="at">slope =</span> <span class="fu">coef</span>(fit)[<span class="dv">2</span>]) <span class="sc">+</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">23.5</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">x =</span> <span class="fl">23.5</span>, <span class="at">y =</span> <span class="fu">predict</span>(fit, <span class="fu">data.table</span>(<span class="at">x =</span> <span class="fl">23.5</span>)), <span class="at">color=</span><span class="st">"red"</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>A dolgot automatizálhatjuk is:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>loessfun <span class="ot">&lt;-</span> <span class="cf">function</span>(xin, x, yobs, span) {</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(x)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  w <span class="ot">&lt;-</span> <span class="fu">tricube</span>(<span class="fu">abs</span>(x<span class="sc">-</span>xin), <span class="fu">sort</span>(<span class="fu">abs</span>(x<span class="sc">-</span>xin))[<span class="fu">ceiling</span>(n<span class="sc">*</span>span)])</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(yobs <span class="sc">~</span> x, <span class="at">weights =</span> w)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">predict</span>(fit, <span class="fu">data.table</span>(<span class="at">x =</span> xin))</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">23.5</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">x =</span> <span class="fl">23.5</span>, <span class="at">y =</span> <span class="fu">loessfun</span>(<span class="fl">23.5</span>, SimData<span class="sc">$</span>x, SimData<span class="sc">$</span>yobs, <span class="fl">0.75</span>), <span class="at">color=</span><span class="st">"red"</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Ezt használva természetesen kényelmesen kiszámíthatjuk ezt bármely más értékre is:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">48.3</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">x =</span> <span class="fl">48.3</span>, <span class="at">y =</span> <span class="fu">loessfun</span>(<span class="fl">48.3</span>, SimData<span class="sc">$</span>x, SimData<span class="sc">$</span>yobs, <span class="fl">0.75</span>), <span class="at">color=</span><span class="st">"red"</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">91.2</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">x =</span> <span class="fl">91.2</span>, <span class="at">y =</span> <span class="fu">loessfun</span>(<span class="fl">91.2</span>, SimData<span class="sc">$</span>x, SimData<span class="sc">$</span>yobs, <span class="fl">0.75</span>), <span class="at">color=</span><span class="st">"red"</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-12-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="összerakva-az-építőelemeket-lokális-polinomiális-regressziókkal-közelítés" class="level2" data-number="1.5">
+<h2 data-number="1.5" class="anchored" data-anchor-id="összerakva-az-építőelemeket-lokális-polinomiális-regressziókkal-közelítés"><span class="header-section-number">1.5</span> Összerakva az építőelemeket: lokális polinomiális regressziókkal közelítés</h2>
+<p>Innen már értelemszerű a következő lépés, számítsuk ki ezeket a simított értékeket az <span class="math inline">\(x\)</span> releváns tartományának minden pontjára:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>SmoothData <span class="ot">&lt;-</span> <span class="fu">data.table</span>(<span class="at">x =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">101</span>, <span class="fl">0.1</span>))</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>SmoothData<span class="sc">$</span>value <span class="ot">&lt;-</span> <span class="fu">apply</span>(SmoothData, <span class="dv">1</span>, <span class="cf">function</span>(sm)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">loessfun</span>(sm[<span class="st">"x"</span>], SimData<span class="sc">$</span>x, SimData<span class="sc">$</span>yobs, <span class="fl">0.75</span>))</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> SmoothData, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> value), <span class="at">color =</span> <span class="st">"red"</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Ez lesz a LOESS simítás!</p>
+<p>Min múlott az eredmény? Két paramétert használtunk: azt, hogy a pontok mekkora hányadát tartjuk meg, és azt, hogy hányadfokú polinomot illesztettünk. A fenti példában ezek <span class="math inline">\(\alpha=0,\!75\)</span> és <span class="math inline">\(p=1\)</span>. (Természetesen a súlyozófüggvény a harmadik paraméter, de azt most végig rögzítettnek fogjuk tekinteni.)</p>
+</section>
+<section id="a-paraméterek-megválasztásának-hatása-lokalitás" class="level2" data-number="1.6">
+<h2 data-number="1.6" class="anchored" data-anchor-id="a-paraméterek-megválasztásának-hatása-lokalitás"><span class="header-section-number">1.6</span> A paraméterek megválasztásának hatása: lokalitás</h2>
+<p>Kézenfekvő a kérdés, hogy vajon a simításra hogyan hatnak ezek a paraméterek (annál is inkább, mert a fenti simítás nem néz ki túl bíztatóan!). Kezdjük a lokalitást szabályzó <span class="math inline">\(\alpha\)</span> paraméter hatásával:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>SmoothData <span class="ot">&lt;-</span> <span class="fu">CJ</span>(<span class="at">x =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">101</span>, <span class="fl">0.5</span>), <span class="at">span =</span> <span class="fu">c</span>(<span class="dv">2</span><span class="sc">/</span>n<span class="fl">+1e-10</span>, <span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">0.75</span>, <span class="dv">1</span>))</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>SmoothData<span class="sc">$</span>value <span class="ot">&lt;-</span> <span class="fu">apply</span>(SmoothData, <span class="dv">1</span>, <span class="cf">function</span>(sm)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">loessfun</span>(sm[<span class="st">"x"</span>], SimData<span class="sc">$</span>x, SimData<span class="sc">$</span>yobs, sm[<span class="st">"span"</span>]))</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> SmoothData[span<span class="sc">%in%</span><span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">0.75</span>)],</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> value, <span class="at">color =</span> <span class="fu">factor</span>(span)))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Még szemléletesebb, ha megnézzük a két szélső értéket is. Ha minden pontot figyelembe veszünk (nincs lokalitás):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> SmoothData[span<span class="sc">==</span><span class="dv">1</span>], <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> value), <span class="at">color =</span> <span class="st">"red"</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Ha semennyi pontot nem veszünk figyelembe, a legközelebbi kettő kivételével értelemszerűen, hogy legyen mire illeszteni a görbét (teljes lokalitás):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> SmoothData[span<span class="sc">==</span><span class="dv">2</span><span class="sc">/</span>n<span class="fl">+1e-10</span>], <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> value), <span class="at">color =</span> <span class="st">"red"</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Az első esetet szokták úgy hívni, hogy túlsimítás, a másodikat úgy, hogy alulsimítás. Vajon hogyan tudjuk a simítási paraméter (ennél a módszernél az <span class="math inline">\(\alpha\)</span>) értékét optimálisan megválasztani?</p>
+</section>
+<section id="a-paraméterek-megválasztásának-hatása-a-polinom-fokszáma" class="level2" data-number="1.7">
+<h2 data-number="1.7" class="anchored" data-anchor-id="a-paraméterek-megválasztásának-hatása-a-polinom-fokszáma"><span class="header-section-number">1.7</span> A paraméterek megválasztásának hatása: a polinom fokszáma</h2>
+<p>Mielőtt az előbbi kérdésre válaszolunk, meg kell nézni még egy kérdést, mert vissza fog hatni a válaszra: az illesztett polinom <span class="math inline">\(p\)</span> fokszámát. Vajon mi történik, ha lineáris regresszió helyett magasabb fokszámú polinomot használunk?</p>
+<section id="kitérő-polinomiális-regresszió-illesztésének-szintaktikája-r-alatt" class="level3" data-number="1.7.1">
+<h3 data-number="1.7.1" class="anchored" data-anchor-id="kitérő-polinomiális-regresszió-illesztésének-szintaktikája-r-alatt"><span class="header-section-number">1.7.1</span> Kitérő: polinomiális regresszió illesztésének szintaktikája R alatt</h3>
+<p>Érdemes kitérni arra a kérdésre, hogy a polinomiális regressziót hogyan kell R alatt specifikálni (az <code>lm</code>-nek megadni).</p>
+<p>A dolognak van ugyanis egy szintaktikai trükkje. Az ugyanis, ami a legkézenfekvőbbnek tűnne, nem működik:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(y <span class="sc">~</span> x <span class="sc">+</span> x<span class="sc">^</span><span class="dv">2</span>, <span class="at">data =</span> SimData)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = y ~ x + x^2, data = SimData)
+
+Coefficients:
+(Intercept)            x  
+    0.96485     -0.01892  </code></pre>
+</div>
+</div>
+<p>A probléma oka, hogy az <code>lm</code> formula interfészében a műveleti jelek speciálisan viselkednek. A <code>^</code> <em>nem</em> a hatványozás jele, hanem interakciót specifikál, azaz az <code>(x+y)^2</code> ugyanaz mint az <code>x+y+x:y</code>, viszont egy tagnál nincs mivel interakciót képezni (az <code>x:x</code> nem az <code>x</code> saját magával vett szorzata lesz, ami nekünk jó lenne, hanem simán <code>x</code>!), így az <code>x^2</code> ugyanaz lesz mint az <code>x</code>.</p>
+<p>A megoldást az <code>I()</code> függvény jelenti, ami azt mondja az R-nek, hogy a beleírt kifejezésben szereplő operátorokat a szokásos aritmetikai értelemmel értékelje ki:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(y <span class="sc">~</span> x <span class="sc">+</span> <span class="fu">I</span>(x<span class="sc">^</span><span class="dv">2</span>), <span class="at">data =</span> SimData)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = y ~ x + I(x^2), data = SimData)
+
+Coefficients:
+(Intercept)            x       I(x^2)  
+  1.014e+00   -2.178e-02    2.806e-05  </code></pre>
+</div>
+</div>
+<p>Ez már működik, de eljárhatunk egyszerűbben is, a <code>poly</code> függvény ugyanis pont erre szolgál:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(y <span class="sc">~</span> <span class="fu">poly</span>(x, <span class="dv">2</span>), <span class="at">data =</span> SimData)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = y ~ poly(x, 2), data = SimData)
+
+Coefficients:
+(Intercept)  poly(x, 2)1  poly(x, 2)2  
+ -0.0001279   -5.5423654    0.2142741  </code></pre>
+</div>
+</div>
+<p>Látszólag mást kaptunk, de valójában csak a parametrizálásban van eltérés, a predikciók azonosak:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predict</span>(<span class="fu">lm</span>(y <span class="sc">~</span> x <span class="sc">+</span> <span class="fu">I</span>(x<span class="sc">^</span><span class="dv">2</span>), <span class="at">data =</span> SimData), <span class="fu">data.table</span>(<span class="at">x =</span> <span class="fl">43.9</span>))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        1 
+0.1119441 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predict</span>(<span class="fu">lm</span>(y <span class="sc">~</span> <span class="fu">poly</span>(x, <span class="dv">2</span>), <span class="at">data =</span> SimData), <span class="fu">data.table</span>(<span class="at">x =</span> <span class="fl">43.9</span>))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        1 
+0.1119441 </code></pre>
+</div>
+</div>
+<p>A magyarázat, hogy a <code>poly</code> alapjáraton ortogonalizálja a tagokat (azaz olyan másodfokú polinomot szolgáltat, melynek elemei korrelálatlanok egymással). Nézzük is meg, a kapott vektorok csakugyan ortogonálisak, sőt, sortonormáltak:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">t</span>(<span class="fu">cbind</span>(<span class="dv">1</span>, <span class="fu">poly</span>(SimData<span class="sc">$</span>x, <span class="dv">3</span>)))<span class="sc">%*%</span><span class="fu">cbind</span>(<span class="dv">1</span>, <span class="fu">poly</span>(SimData<span class="sc">$</span>x, <span class="dv">3</span>))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                           1             2             3
+  1.010000e+02  2.498002e-16  2.470246e-15  1.609823e-15
+1 2.498002e-16  1.000000e+00 -3.191891e-16 -5.551115e-17
+2 2.470246e-15 -3.191891e-16  1.000000e+00  1.249001e-16
+3 1.609823e-15 -5.551115e-17  1.249001e-16  1.000000e+00</code></pre>
+</div>
+</div>
+<p>Ha szeretnénk, ezt kikapcsolhatjuk, és akkor visszakapjuk a kézel létrehozott eredményt:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(y <span class="sc">~</span> <span class="fu">poly</span>(x, <span class="dv">2</span>, <span class="at">raw =</span> <span class="cn">TRUE</span>), <span class="at">data =</span> SimData)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = y ~ poly(x, 2, raw = TRUE), data = SimData)
+
+Coefficients:
+            (Intercept)  poly(x, 2, raw = TRUE)1  poly(x, 2, raw = TRUE)2  
+              1.014e+00               -2.178e-02                2.806e-05  </code></pre>
+</div>
+</div>
+<p>Az alapértelmezett persze nem véletlenül az, ami: az ortogonális polinomok becslése sokkal jobb numerikus szempontból. Például a modellmátrix kondíciószámát nézve:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">kappa</span>(<span class="fu">cbind</span>(<span class="dv">1</span>, <span class="fu">poly</span>(SimData<span class="sc">$</span>x, <span class="dv">3</span>)), <span class="at">exact =</span> <span class="cn">TRUE</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10.04988</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">kappa</span>(<span class="fu">cbind</span>(<span class="dv">1</span>, <span class="fu">poly</span>(SimData<span class="sc">$</span>x, <span class="dv">3</span>, <span class="at">raw =</span> <span class="cn">TRUE</span>)), <span class="at">exact =</span> <span class="cn">TRUE</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1651776</code></pre>
+</div>
+</div>
+<p>A <code>poly</code> használata nem csak elegánsabb és numerikusan szerencsésebb, de jóval kényelmesebb is (gondoljunk bele mi volna, ha véletlenül tizedfokú polinomot akarnánk specifikálni, vagy változó lenne, hogy hányadfokú polinomról van szó).</p>
+</section>
+<section id="polinom-fokszámának-változtatása" class="level3" data-number="1.7.2">
+<h3 data-number="1.7.2" class="anchored" data-anchor-id="polinom-fokszámának-változtatása"><span class="header-section-number">1.7.2</span> Polinom fokszámának változtatása</h3>
+<p>Most már könnyedén megoldhatjuk, hogy a fokszám is változtatható legyen:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>loessfun <span class="ot">&lt;-</span> <span class="cf">function</span>(xin, x, yobs, span, degree) {</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(x)</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  w <span class="ot">&lt;-</span> <span class="fu">tricube</span>(<span class="fu">abs</span>(x<span class="sc">-</span>xin), <span class="fu">sort</span>(<span class="fu">abs</span>(x<span class="sc">-</span>xin))[<span class="fu">ceiling</span>(n<span class="sc">*</span>span)])</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(yobs <span class="sc">~</span> <span class="fu">poly</span>(x, degree), <span class="at">weights =</span> w)</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">predict</span>(fit, <span class="fu">data.table</span>(<span class="at">x =</span> xin))</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Ezt használva immár különböző fokszámokkal és simítási paraméterrel is próbálkozhatunk:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>SmoothData <span class="ot">&lt;-</span> <span class="fu">CJ</span>(<span class="at">x =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">101</span>, <span class="fl">0.5</span>), <span class="at">degree =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>),</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">span =</span> (<span class="dv">5</span><span class="sc">:</span><span class="dv">99</span>)<span class="sc">/</span><span class="dv">100</span>)</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>SmoothData<span class="sc">$</span>value <span class="ot">&lt;-</span> <span class="fu">apply</span>(SmoothData, <span class="dv">1</span>, <span class="cf">function</span>(sm)</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">loessfun</span>(sm[<span class="st">"x"</span>], SimData<span class="sc">$</span>x, SimData<span class="sc">$</span>yobs, sm[<span class="st">"span"</span>], sm[<span class="st">"degree"</span>]))</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> SmoothData[span<span class="sc">%in%</span><span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">0.75</span>)],</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> value, <span class="at">color =</span> <span class="fu">factor</span>(span))) <span class="sc">+</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(<span class="at">rows =</span> <span class="fu">vars</span>(degree))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Egy nagyon fontos dolgot látunk: ha áttérünk a másodfokú polinom használatára, akkor gyakorlatilag a simítási paramétertől függetlenül szinte tökéletes simítást kapunk!</p>
+</section>
+</section>
+<section id="a-paraméterek-megválasztása" class="level2" data-number="1.8">
+<h2 data-number="1.8" class="anchored" data-anchor-id="a-paraméterek-megválasztása"><span class="header-section-number">1.8</span> A paraméterek megválasztása</h2>
+<p>Adja magát a kérdés, hogy a paramétereket hogyan választhatjuk meg egy valódi helyzetben (értsd: ahol mi sem tudjuk mi az igazi függvény).</p>
+<p>Itt most csak az érzékeltetés kedvéért mutatunk meg egy nagyon egyszerű módszert (megjegyezve, hogy ennél okosabban is el lehet járni, de ez is szemléltetni fogja, hogy a probléma kezelhető).</p>
+<p>Amit meg fogunk nézni az lényegében egy hold-out set validáció. A simitás jóságát azzal fogjuk mérni, hogy a simítógörbe és a pontok között mekkora a négyzetes eltérésösszeg. Ennek minimalizálása természetesen mindig alulsimított megoldást eredményezne, hiszen ez a célfüggvény nullába is vihető. Éppen ezért cselesebben járunk el: a pontokat véletlenszerűen két részre osztjuk, az egyik alapján határozzuk meg a simítógörbét (tanítóhalmaz), de a hibát a másik halmazon (teszthalmaz) mérjük le! Így ha elkezdünk túlsimítani, akkor a tanítóhalmazon ugyan csökken a hiba, de a teszthalmazon elkezd nőni. Azt a simítást választjuk tehát, ami a teszthalmazon mért hibát minimalizálja.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>SimData<span class="sc">$</span>train <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>SimData<span class="sc">$</span>train[<span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">101</span>, <span class="dv">80</span>)] <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(SimData, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> yobs, <span class="at">color =</span> train)) <span class="sc">+</span> <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> y), <span class="at">color =</span> <span class="st">"orange"</span>, <span class="at">lwd =</span> <span class="dv">1</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Nézzük meg hogyan alakul a hiba a simítási paraméter változtatásával, ha az összes pontra illesztünk (az egyszerűség kedvéért a fokszám legyen fixen 1, tehát csak az <span class="math inline">\(\alpha\)</span> hatását vizsgáljuk – a fokszám, vagy bármilyen más paraméter ugyanígy lenne kezelhető):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>SmoothData2 <span class="ot">&lt;-</span> <span class="fu">merge</span>(SimData, <span class="fu">CJ</span>(<span class="at">x =</span> <span class="fu">unique</span>(SimData<span class="sc">$</span>x), <span class="at">degree =</span> <span class="dv">1</span>,</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">span =</span> (<span class="dv">3</span><span class="sc">:</span><span class="dv">99</span>)<span class="sc">/</span><span class="dv">100</span>), <span class="at">by =</span> <span class="st">"x"</span>)</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>SmoothData2<span class="sc">$</span>value <span class="ot">&lt;-</span> <span class="fu">apply</span>(SmoothData2, <span class="dv">1</span>, <span class="cf">function</span>(sm)</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">loessfun</span>(sm[<span class="st">"x"</span>], SimData<span class="sc">$</span>x, SimData<span class="sc">$</span>yobs, sm[<span class="st">"span"</span>], sm[<span class="st">"degree"</span>]))</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(SmoothData2[, .(<span class="at">SSE =</span> <span class="fu">sum</span>((value<span class="sc">-</span>yobs)<span class="sc">^</span><span class="dv">2</span>)) , .(span)],</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> span, <span class="at">y =</span> SSE)) <span class="sc">+</span> <span class="fu">geom_line</span>()</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Ahogy vártuk, a hiba folyamatosan csökken, az alulsimított megoldás tűnik a legjobbnak. Jól látható, hogy az alulsimítás a túlilleszkedés analóg fogalma!</p>
+<p>Most vessük be a trükköt: csak a tanítóhalmazra illesztünk, miközben a teszthalmazon mérjük a hibát. Íme az eredmény:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>SmoothData3 <span class="ot">&lt;-</span> <span class="fu">merge</span>(SimData[train<span class="sc">==</span><span class="cn">FALSE</span>],</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>                     <span class="fu">CJ</span>(<span class="at">x =</span> <span class="fu">unique</span>(SimData[train<span class="sc">==</span><span class="cn">FALSE</span>]<span class="sc">$</span>x), <span class="at">degree =</span> <span class="dv">1</span>,</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">span =</span> (<span class="dv">3</span><span class="sc">:</span><span class="dv">99</span>)<span class="sc">/</span><span class="dv">100</span>), <span class="at">by =</span> <span class="st">"x"</span>)</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>SmoothData3<span class="sc">$</span>value <span class="ot">&lt;-</span> <span class="fu">apply</span>(SmoothData3, <span class="dv">1</span>, <span class="cf">function</span>(sm)</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">loessfun</span>(sm[<span class="st">"x"</span>], SimData[train<span class="sc">==</span><span class="cn">TRUE</span>]<span class="sc">$</span>x, SimData[train<span class="sc">==</span><span class="cn">TRUE</span>]<span class="sc">$</span>yobs,</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>           sm[<span class="st">"span"</span>], sm[<span class="st">"degree"</span>]))</span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(SmoothData3[, .(<span class="at">SSE =</span> <span class="fu">sum</span>((value<span class="sc">-</span>yobs)<span class="sc">^</span><span class="dv">2</span>)) , .(span)],</span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> span, <span class="at">y =</span> SSE)) <span class="sc">+</span> <span class="fu">geom_line</span>()</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Pontosan a várakozásainknak megfelelően így már szép, értelmes optimum van: mind a túl-, mind az alulsimítást észre tudjuk venni ezzel a validációval.</p>
+<p>Az optimális simítási paraméter értéke számszerűen is meghatározható:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>optspan <span class="ot">&lt;-</span> SmoothData3[, .(<span class="at">SSE =</span> <span class="fu">sum</span>((value<span class="sc">-</span>yobs)<span class="sc">^</span><span class="dv">2</span>)) , .(span)][<span class="fu">order</span>(SSE)][<span class="dv">1</span>]</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>optspan</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    span       SSE
+   &lt;num&gt;     &lt;num&gt;
+1:  0.21 0.9498537</code></pre>
+</div>
+</div>
+<p>A simítás ezzel:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> SmoothData[span<span class="sc">==</span>optspan<span class="sc">$</span>span<span class="sc">&amp;</span>degree<span class="sc">==</span><span class="dv">1</span>],</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> value), <span class="at">color =</span> <span class="st">"red"</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="LOESS_files/figure-html/unnamed-chunk-30-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Kimásolva!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Kimásolva!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ferenci-tamas\.github\.io\/simitas-spline-additiv-modell");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./index.html" class="pagination-link" aria-label="Előszó">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Előszó</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./spline.html" class="pagination-link" aria-label="Spline fogalma, lineáris regressziótól a spline-regresszióig">
+        <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Spline fogalma, lineáris regressziótól a spline-regresszióig</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/edit/main/LOESS.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/blob/main/LOESS.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></div></div></footer><script type="text/javascript">
+var sc_project=12422840; 
+var sc_invisible=1; 
+var sc_security="d32cce24"; 
+</script>
+<script type="text/javascript" src="https://www.statcounter.com/counter/counter.js" async=""></script>
+<noscript><div class="statcounter"><a title="ingyenes
+webstatisztika" href="https://www.statcounter.hu/" target="_blank"><img class="statcounter" src="https://c.statcounter.com/12422840/0/d32cce24/1/" alt="ingyenes webstatisztika" referrerpolicy="no-referrer-when-downgrade"></a></div></noscript>
+
+
+
+
+</body></html>

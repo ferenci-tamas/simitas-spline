@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="hu-HU" xml:lang="hu-HU"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.31">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
+
+<title>3&nbsp; Spline-regresszió becslése bázisfüggvényekkel, penalizáltan – Simítás, spline-regresszió, additív modellek</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./additiv-modell.html" rel="next">
+<link href="./spline.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-e1a5c8363afafaef2c763b6775fbf3ca.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-364982630eef5352dd1537128a8ed5cb.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "Nincs találat",
+    "search-matching-documents-text": "találat",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "További találatok elrejtése",
+    "search-more-match-text": "további találat ebben a dokumentumban",
+    "search-more-matches-text": "további találat ebben a dokumentumban",
+    "search-clear-button-title": "Törlés",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Mégse",
+    "search-submit-button-title": "Keresés",
+    "search-label": "Keresés"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<meta property="og:title" content="3&nbsp; Spline-regresszió becslése bázisfüggvényekkel, penalizáltan – Simítás, spline-regresszió, additív modellek">
+<meta property="og:description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
+<meta property="og:image" content="https://ferenci-tamas.github.io/simitas-spline-additiv-modell/spline-regresszio_files/figure-html/unnamed-chunk-2-1.png">
+<meta property="og:site_name" content="Simítás, spline-regresszió, additív modellek">
+<meta property="og:image:height" content="960">
+<meta property="og:image:width" content="1344">
+<meta name="twitter:title" content="3&nbsp; Spline-regresszió becslése bázisfüggvényekkel, penalizáltan – Simítás, spline-regresszió, additív modellek">
+<meta name="twitter:description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
+<meta name="twitter:image" content="https://ferenci-tamas.github.io/simitas-spline-additiv-modell/spline-regresszio_files/figure-html/unnamed-chunk-2-1.png">
+<meta name="twitter:image-height" content="960">
+<meta name="twitter:image-width" content="1344">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./spline-regresszio.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Spline-regresszió becslése bázisfüggvényekkel, penalizáltan</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Keresés" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Simítás, spline-regresszió, additív modellek</a> 
+        <div class="sidebar-tools-main tools-wide">
+    <a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell" title="Forráskód" class="quarto-navigation-tool px-1" aria-label="Forráskód"><i class="bi bi-github"></i></a>
+    <div class="dropdown">
+      <a href="" title="Letöltés" id="quarto-navigation-tool-dropdown-0" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" role="link" aria-label="Letöltés"><i class="bi bi-download"></i></a>
+      <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-0">
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="./ferenci-tamas-simitas-spline-additiv-modell.pdf">
+              <i class="bi bi-file-pdf pe-1"></i>
+            Letöltés PDF
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="./ferenci-tamas-simitas-spline-additiv-modell.epub">
+              <i class="bi bi-journal pe-1"></i>
+            Letöltés ePub
+            </a>
+          </li>
+      </ul>
+    </div>
+    <div class="dropdown">
+      <a href="" title="Megosztás" id="quarto-navigation-tool-dropdown-1" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" role="link" aria-label="Megosztás"><i class="bi bi-share"></i></a>
+      <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-1">
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://twitter.com/intent/tweet?url=|url|">
+              <i class="bi bi-twitter pe-1"></i>
+            Twitter
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://www.facebook.com/sharer/sharer.php?u=|url|">
+              <i class="bi bi-facebook pe-1"></i>
+            Facebook
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://www.linkedin.com/sharing/share-offsite/?url=|url|">
+              <i class="bi bi-linkedin pe-1"></i>
+            LinkedIn
+            </a>
+          </li>
+      </ul>
+    </div>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Keresés"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Előszó</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./LOESS.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">A LOESS simító</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./spline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Spline fogalma, lineáris regressziótól a spline-regresszióig</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./spline-regresszio.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Spline-regresszió becslése bázisfüggvényekkel, penalizáltan</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./additiv-modell.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Additív modellek</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Tartalomjegyzék</h2>
+   
+  <ul>
+  <li><a href="#bázisfüggvényekkel-felírás" id="toc-bázisfüggvényekkel-felírás" class="nav-link active" data-scroll-target="#bázisfüggvényekkel-felírás"><span class="header-section-number">3.1</span> Bázisfüggvényekkel felírás</a>
+  <ul class="collapse">
+  <li><a href="#hogyan-becsüljük-meg-a-spline-regressziót" id="toc-hogyan-becsüljük-meg-a-spline-regressziót" class="nav-link" data-scroll-target="#hogyan-becsüljük-meg-a-spline-regressziót"><span class="header-section-number">3.1.1</span> Hogyan becsüljük meg a spline-regressziót?</a></li>
+  <li><a href="#polinomok-tere-mint-függvénytér" id="toc-polinomok-tere-mint-függvénytér" class="nav-link" data-scroll-target="#polinomok-tere-mint-függvénytér"><span class="header-section-number">3.1.2</span> Polinomok tere mint függvénytér</a></li>
+  <li><a href="#polinomok-terének-bázisa" id="toc-polinomok-terének-bázisa" class="nav-link" data-scroll-target="#polinomok-terének-bázisa"><span class="header-section-number">3.1.3</span> Polinomok terének bázisa</a></li>
+  <li><a href="#a-polinomok-terének-dimenziója" id="toc-a-polinomok-terének-dimenziója" class="nav-link" data-scroll-target="#a-polinomok-terének-dimenziója"><span class="header-section-number">3.1.4</span> A polinomok terének dimenziója</a></li>
+  <li><a href="#spline-ok-függvénytere" id="toc-spline-ok-függvénytere" class="nav-link" data-scroll-target="#spline-ok-függvénytere"><span class="header-section-number">3.1.5</span> Spline-ok függvénytere</a></li>
+  <li><a href="#hány-dimenziós-a-spline-ok-tere" id="toc-hány-dimenziós-a-spline-ok-tere" class="nav-link" data-scroll-target="#hány-dimenziós-a-spline-ok-tere"><span class="header-section-number">3.1.6</span> Hány dimenziós a spline-ok tere?</a></li>
+  <li><a href="#mik-a-spline-ok-bázisfüggvényei" id="toc-mik-a-spline-ok-bázisfüggvényei" class="nav-link" data-scroll-target="#mik-a-spline-ok-bázisfüggvényei"><span class="header-section-number">3.1.7</span> Mik a spline-ok bázisfüggvényei?</a></li>
+  </ul></li>
+  <li><a href="#modellmátrix-előállítása" id="toc-modellmátrix-előállítása" class="nav-link" data-scroll-target="#modellmátrix-előállítása"><span class="header-section-number">3.2</span> Modellmátrix előállítása</a>
+  <ul class="collapse">
+  <li><a href="#a-bázisfüggvények-használatának-ereje" id="toc-a-bázisfüggvények-használatának-ereje" class="nav-link" data-scroll-target="#a-bázisfüggvények-használatának-ereje"><span class="header-section-number">3.2.1</span> A bázisfüggvények használatának ereje</a></li>
+  <li><a href="#bázisfüggvények-használata-másodfokú-polinomnál" id="toc-bázisfüggvények-használata-másodfokú-polinomnál" class="nav-link" data-scroll-target="#bázisfüggvények-használata-másodfokú-polinomnál"><span class="header-section-number">3.2.2</span> Bázisfüggvények használata másodfokú polinomnál</a></li>
+  <li><a href="#bázisfüggvények-használatának-előnye" id="toc-bázisfüggvények-használatának-előnye" class="nav-link" data-scroll-target="#bázisfüggvények-használatának-előnye"><span class="header-section-number">3.2.3</span> Bázisfüggvények használatának előnye</a></li>
+  <li><a href="#a-bázisfüggvények-ereje-1.-felvonás" id="toc-a-bázisfüggvények-ereje-1.-felvonás" class="nav-link" data-scroll-target="#a-bázisfüggvények-ereje-1.-felvonás"><span class="header-section-number">3.2.4</span> A bázisfüggvények ereje, 1. felvonás</a></li>
+  <li><a href="#a-bázisfüggvények-ereje-2.-felvonás" id="toc-a-bázisfüggvények-ereje-2.-felvonás" class="nav-link" data-scroll-target="#a-bázisfüggvények-ereje-2.-felvonás"><span class="header-section-number">3.2.5</span> A bázisfüggvények ereje, 2. felvonás</a></li>
+  <li><a href="#megvalósítás-r-alatt" id="toc-megvalósítás-r-alatt" class="nav-link" data-scroll-target="#megvalósítás-r-alatt"><span class="header-section-number">3.2.6</span> Megvalósítás <code>R</code> alatt</a></li>
+  </ul></li>
+  <li><a href="#penalizálás" id="toc-penalizálás" class="nav-link" data-scroll-target="#penalizálás"><span class="header-section-number">3.3</span> Penalizálás</a>
+  <ul class="collapse">
+  <li><a href="#dimenzió-meghatározása" id="toc-dimenzió-meghatározása" class="nav-link" data-scroll-target="#dimenzió-meghatározása"><span class="header-section-number">3.3.1</span> Dimenzió meghatározása</a></li>
+  <li><a href="#simítás-fokának-meghatározása" id="toc-simítás-fokának-meghatározása" class="nav-link" data-scroll-target="#simítás-fokának-meghatározása"><span class="header-section-number">3.3.2</span> Simítás fokának meghatározása</a></li>
+  <li><a href="#penalizált-regresszió" id="toc-penalizált-regresszió" class="nav-link" data-scroll-target="#penalizált-regresszió"><span class="header-section-number">3.3.3</span> Penalizált regresszió</a></li>
+  <li><a href="#a-simasági-büntetőtag-meghatározása" id="toc-a-simasági-büntetőtag-meghatározása" class="nav-link" data-scroll-target="#a-simasági-büntetőtag-meghatározása"><span class="header-section-number">3.3.4</span> A simasági büntetőtag meghatározása</a></li>
+  <li><a href="#megvalósítás-r-alatt-1" id="toc-megvalósítás-r-alatt-1" class="nav-link" data-scroll-target="#megvalósítás-r-alatt-1"><span class="header-section-number">3.3.5</span> Megvalósítás <code>R</code> alatt</a></li>
+  <li><a href="#a-simítási-büntetőtag-beépítése-a-regressziós-célfüggvénybe" id="toc-a-simítási-büntetőtag-beépítése-a-regressziós-célfüggvénybe" class="nav-link" data-scroll-target="#a-simítási-büntetőtag-beépítése-a-regressziós-célfüggvénybe"><span class="header-section-number">3.3.6</span> A simítási büntetőtag beépítése a regressziós célfüggvénybe</a></li>
+  <li><a href="#regresszió-megoldása-a-penalizálással" id="toc-regresszió-megoldása-a-penalizálással" class="nav-link" data-scroll-target="#regresszió-megoldása-a-penalizálással"><span class="header-section-number">3.3.7</span> Regresszió megoldása a penalizálással</a></li>
+  <li><a href="#megvalósítás-r-alatt-2" id="toc-megvalósítás-r-alatt-2" class="nav-link" data-scroll-target="#megvalósítás-r-alatt-2"><span class="header-section-number">3.3.8</span> Megvalósítás <code>R</code> alatt</a></li>
+  </ul></li>
+  <li><a href="#simítási-paraméter-meghatározása" id="toc-simítási-paraméter-meghatározása" class="nav-link" data-scroll-target="#simítási-paraméter-meghatározása"><span class="header-section-number">3.4</span> Simítási paraméter meghatározása</a>
+  <ul class="collapse">
+  <li><a href="#a-simítási-paraméter-meghatározása" id="toc-a-simítási-paraméter-meghatározása" class="nav-link" data-scroll-target="#a-simítási-paraméter-meghatározása"><span class="header-section-number">3.4.1</span> A simítási paraméter meghatározása</a></li>
+  <li><a href="#keresztvalidációs-módszerek-ocv" id="toc-keresztvalidációs-módszerek-ocv" class="nav-link" data-scroll-target="#keresztvalidációs-módszerek-ocv"><span class="header-section-number">3.4.2</span> Keresztvalidációs módszerek: OCV</a></li>
+  <li><a href="#keresztvalidációs-módszerek-gcv" id="toc-keresztvalidációs-módszerek-gcv" class="nav-link" data-scroll-target="#keresztvalidációs-módszerek-gcv"><span class="header-section-number">3.4.3</span> Keresztvalidációs módszerek: GCV</a></li>
+  <li><a href="#megvalósítás-r-alatt-3" id="toc-megvalósítás-r-alatt-3" class="nav-link" data-scroll-target="#megvalósítás-r-alatt-3"><span class="header-section-number">3.4.4</span> Megvalósítás <code>R</code> alatt</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/edit/main/spline-regresszio.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/blob/main/spline-regresszio.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Spline-regresszió becslése bázisfüggvényekkel, penalizáltan</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="bázisfüggvényekkel-felírás" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="bázisfüggvényekkel-felírás"><span class="header-section-number">3.1</span> Bázisfüggvényekkel felírás</h2>
+<section id="hogyan-becsüljük-meg-a-spline-regressziót" class="level3" data-number="3.1.1">
+<h3 data-number="3.1.1" class="anchored" data-anchor-id="hogyan-becsüljük-meg-a-spline-regressziót"><span class="header-section-number">3.1.1</span> Hogyan becsüljük meg a spline-regressziót?</h3>
+<p>Amiről nem beszéltünk eddig: ez mind szép, de hogyan tudunk ténylegesen is megbecsülni egy ilyen spline-regressziót?</p>
+<p>Ehhez visszalépünk pár lépést, és bevezetünk egy első kicsit absztraktnak tűnő, de később rendkívül jó szolgálatot tevő megközelítést</p>
+<p>Bár a célunk a spline-regresszió becslésének a megoldása, de a dolog – értelemszerűen – alkalmazható polinomiális regresszióra is (legfeljebb nincs sok értelme, mert az hagyományos módszerekkel is jól kézbentartható), úgyhogy először azon fogjuk illusztrálni</p>
+</section>
+<section id="polinomok-tere-mint-függvénytér" class="level3" data-number="3.1.2">
+<h3 data-number="3.1.2" class="anchored" data-anchor-id="polinomok-tere-mint-függvénytér"><span class="header-section-number">3.1.2</span> Polinomok tere mint függvénytér</h3>
+<p>A másodfokú polinomok – mint függvények – összessége <strong>függvényteret</strong> alkot</p>
+<p>Ez egy olyan <em>vektortér</em>, aminek az elemei a függvények, a skalárok a valós számok, a két művelet pedig</p>
+<ul>
+<li><p>Skalárral szorzás: <span class="math inline">\(\left(cf\right)\left(x\right)=cf\left(x\right)\)</span></p></li>
+<li><p>Vektorok (azaz függvények) összeadása: <span class="math inline">\(\left(f+g\right)\left(x\right)=f\left(x\right)+g\left(x\right)\)</span>, tehát pontonkénti összeadás</p></li>
+</ul>
+<p>Belátható, hogy ez teljesíti a vektortéraxiómákat, mert zárt a két műveletre (másodfokú polinomok összege másodfokú polinom és másodfokú polinom konstansszorosa másodfokú polinom), illetve az összeadásra nézve kommutatív csoport, a szorzás és az összeadás mindkét irányból disztributív, van egységelem szorzásra nézve és a skalárszorzás valamint a valós számok szorzása kompatibilis</p>
+</section>
+<section id="polinomok-terének-bázisa" class="level3" data-number="3.1.3">
+<h3 data-number="3.1.3" class="anchored" data-anchor-id="polinomok-terének-bázisa"><span class="header-section-number">3.1.3</span> Polinomok terének bázisa</h3>
+<p>Szuper, de mindez mire jó?</p>
+<p>Ha vektortér, akkor létezik <strong>bázisa</strong>, azaz olyan vektorok halmaza, melyekből lineáris kombinációval minden vektor – egyértelműen – előállítható (bázis: lineárisan független generátorrendszer)</p>
+<p>A bázis nem feltétlenül egyértelmű, de az elemszáma igen, ez a vektortér <strong>dimenziója</strong></p>
+<p>Például a másodfokú polinomok jó bázisa <span class="math inline">\(\left\{1,x,x^2\right\}\)</span>, nyilvánvaló, hogy ebből tényleg minden <span class="math inline">\(ax^2+bx+c\)</span> másodfokú polinom előállítható lineáris kombinációval (triviálisan, a súlyok <span class="math inline">\(c\)</span>, <span class="math inline">\(b\)</span> és <span class="math inline">\(a\)</span>)</p>
+<p>Függvényterek esetében a bázis elemeit <strong>bázisfüggvényeknek</strong> is szokás nevezni, az <span class="math inline">\(\left\{1,x,x^2\right\}\)</span> tehát a másodfokú polinomok bázisfüggvényei</p>
+</section>
+<section id="a-polinomok-terének-dimenziója" class="level3" data-number="3.1.4">
+<h3 data-number="3.1.4" class="anchored" data-anchor-id="a-polinomok-terének-dimenziója"><span class="header-section-number">3.1.4</span> A polinomok terének dimenziója</h3>
+<p>Mivel mutattunk egy konkrét bázist, így a dimenzió nyilván 3, de a későbbiek szempontjából jól jön egy másik módszer is</p>
+<p>Azzal, hogy az <span class="math inline">\(ax^2+bx+c\)</span> polinomot megfeleltettük az <span class="math inline">\(\left(a,b,c\right)\)</span> valós számhármasnak, a polinomok tere és a valós számhármasok tere (az <span class="math inline">\(\mathbb{R}^3\)</span>) között létesítettünk egy izomorfizmust (a leképezés művelettartó és kölcsönösen egyértelmű)</p>
+<p>Emiatt a polinomok terének ugyanaz a dimenziója, mint az <span class="math inline">\(\mathbb{R}^3\)</span>-nak, ami viszont természetesen 3</p>
+<p>Ez a módszer általában is használható: a dimenzió a felíráshoz szükséges paraméterek száma (feltéve, hogy ezek valós számok, valamint mindegyikhez tartozik egy polinom és viszont)</p>
+</section>
+<section id="spline-ok-függvénytere" class="level3" data-number="3.1.5">
+<h3 data-number="3.1.5" class="anchored" data-anchor-id="spline-ok-függvénytere"><span class="header-section-number">3.1.5</span> Spline-ok függvénytere</h3>
+<p>Mindez a spline-okra is igaz!</p>
+<p>Érthető: minden pontban két polinomot adunk össze, vagy polinomot szorzunk skalárral, az eredmény polinom (már láttuk) – így tud spline adott pontja lenni!</p>
+<p>Azaz: spline-okat is elő tudunk állítani bázisfüggvények lineáris kombinációjaként!</p>
+</section>
+<section id="hány-dimenziós-a-spline-ok-tere" class="level3" data-number="3.1.6">
+<h3 data-number="3.1.6" class="anchored" data-anchor-id="hány-dimenziós-a-spline-ok-tere"><span class="header-section-number">3.1.6</span> Hány dimenziós a spline-ok tere?</h3>
+<p>Mielőtt megkeressük a spline-ok terének egy bázisát (azaz a konkrét bázisfüggvényeket), tisztázni kellene, hogy hány bázisfüggvényt keresünk egyáltalán, azaz hány dimenziós a spline-ok függvénytere</p>
+<p>Naiv ötlet (köbös spline-okat használva példaként): van <span class="math inline">\(q-1\)</span> szakasz (<span class="math inline">\(q-2\)</span> knot, ami meghatároz <span class="math inline">\(q-3\)</span> szakaszt meg a két vége; úgy is felfogható, hogy a két végével együtt <span class="math inline">\(q\)</span> knot van, ami meghatároz <span class="math inline">\(q-1\)</span> szakaszt) és mindegyiken egy harmadfokú polinom (aminek 4 paramétere van), akkor az <span class="math inline">\(4q-4\)</span> paraméter</p>
+<p>Igen ám, de vannak megkötések: a knotokban a függvényérték és az első két derivált egyezik</p>
+<p>Minden megkötés minden pontban 1 egyenlet, az 1-gyel csökkenti a paraméterek számát: van <span class="math inline">\(q-2\)</span> knot és 3 megkötés, az <span class="math inline">\(3q-6\)</span> csökkentés, marad <span class="math inline">\(q+2\)</span> paraméter</p>
+<p>De mivel természetes, így a végpontokban is van 1-1 megkötés: marad <span class="math inline">\(q\)</span> paraméter, azaz <span class="math inline">\(q\)</span> dimenziós a természetes köbös spline-ok tere (ezért neveztük a knot-ok számát <span class="math inline">\(q-2\)</span>-nek!)</p>
+</section>
+<section id="mik-a-spline-ok-bázisfüggvényei" class="level3" data-number="3.1.7">
+<h3 data-number="3.1.7" class="anchored" data-anchor-id="mik-a-spline-ok-bázisfüggvényei"><span class="header-section-number">3.1.7</span> Mik a spline-ok bázisfüggvényei?</h3>
+<p>Természetesen itt is igaz, hogy adott, rögzített spline-osztályra (pl. természetes köbös) is végtelen sok bázis van</p>
+<p>Köztük célszerűség alapján választhatunk</p>
+<p>A részletek nélkül két példa:</p>
+<ul>
+<li><p><span class="math inline">\(b_1\left(x\right)=1, b_2\left(x\right)=x, b_i\left(x\right)=\left|x-x_{i-2}^{\ast}\right|^3 (i=3,4,\ldots,q)\)</span></p></li>
+<li><p><span class="math inline">\(b_1\left(x\right)=1, b_2\left(x\right)=x, b_i\left(x\right)=R\left(x,x_{i-2}^{\ast}\right) (i=3,4,\ldots,q)\)</span>, ahol <span class="math inline">\(R\)</span> egy nevezetes – elég hosszú, bár nem túl bonyolult – függvény (hamar látni fogjuk, hogy ez miért előnyös), annyi fontos, hogy <span class="math inline">\(x\)</span> a <span class="math inline">\(\left[0,1\right]\)</span> intervallumban essen (egyszerű átskálázással mindig elérhető)</p></li>
+</ul>
+<p>Most már csak a regresszió kivitelezését kell kitalálnunk</p>
+</section>
+</section>
+<section id="modellmátrix-előállítása" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="modellmátrix-előállítása"><span class="header-section-number">3.2</span> Modellmátrix előállítása</h2>
+<section id="a-bázisfüggvények-használatának-ereje" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="a-bázisfüggvények-használatának-ereje"><span class="header-section-number">3.2.1</span> A bázisfüggvények használatának ereje</h3>
+<p>A bázisfüggvények használatának két hatalmas előnye van:</p>
+<ul>
+<li><p>A probléma visszavezethető velük a sima lineáris regresszióra</p></li>
+<li><p>Sőt, ehhez a modellmátrix is könnyen előállítható</p></li>
+</ul>
+</section>
+<section id="bázisfüggvények-használata-másodfokú-polinomnál" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="bázisfüggvények-használata-másodfokú-polinomnál"><span class="header-section-number">3.2.2</span> Bázisfüggvények használata másodfokú polinomnál</h3>
+<p>Legyen <span class="math inline">\(b_1\left(x\right)=1\)</span>, <span class="math inline">\(b_2\left(x\right)=x\)</span> és <span class="math inline">\(b_3\left(x\right)=x^2\)</span> a bázisunk</p>
+<p>Az eredeti regresszió:</p>
+<p><span class="math display">\[
+y_i = \beta_1 + \beta_2 x_i + \beta_3 x_i^2 + \varepsilon_i
+\]</span></p>
+<p>Átírva bázisokra (lényegében transzformált magyarázó változók):</p>
+<p><span class="math display">\[
+y_i = \beta_1 b_1\left(x_i\right) + \beta_2 b_2\left(x_i\right) + \beta_3 b_3\left(x_i\right) + \varepsilon_i
+\]</span></p>
+<p>Ez már tiszta lineáris regresszió</p>
+</section>
+<section id="bázisfüggvények-használatának-előnye" class="level3" data-number="3.2.3">
+<h3 data-number="3.2.3" class="anchored" data-anchor-id="bázisfüggvények-használatának-előnye"><span class="header-section-number">3.2.3</span> Bázisfüggvények használatának előnye</h3>
+<p>Ez úgy tűnik, hogy csak egy nagyon nyakatekert felírás egy amúgy egyszerű problémára</p>
+<p>Valójában viszont egy elképesztően erőteljes dolgot nyertünk: <em>minden</em> olyan függvény, legyen bármilyen komplikált is, ami felírható bázisfüggvényekkel (azaz az osztálya függvényosztályt alkot), az berakható egy <em>kutyaközönséges</em> regresszióba (azaz lehet ő a regrssziós függvény) a fenti transzformációval, tehát</p>
+<p><span class="math display">\[
+    \sum_{i=1}^q \beta_i b_i\left(x\right)
+\]</span></p>
+<p>alakban</p>
+<p>(Azaz minden függvény, ami egy függvénytér eleme)</p>
+</section>
+<section id="a-bázisfüggvények-ereje-1.-felvonás" class="level3" data-number="3.2.4">
+<h3 data-number="3.2.4" class="anchored" data-anchor-id="a-bázisfüggvények-ereje-1.-felvonás"><span class="header-section-number">3.2.4</span> A bázisfüggvények ereje, 1. felvonás</h3>
+<p>Még egyszer: <em>minden</em> függvény, ami felírható bázisfüggvényekkel</p>
+<p>Azaz: <em>minden</em></p>
+<p>…és az összesnek <em>pontosan ugyanúgy</em> az lesz az alakja, hogy</p>
+<p><span class="math display">\[
+\sum_{i=1}^q \beta_i b_i\left(x\right),
+\]</span></p>
+<p>egyedül a bázisfüggvényt kell az adott esetnek megfelelően megválasztani</p>
+<p>Tehát a spline is mehet ugyanígy (csak megfelelő <span class="math inline">\(b_i\)</span>-kkel)!</p>
+<p>És ha ez az alak megvan, akkor onnantól természetesen <em>sima lineáris regresszióval</em> elintézhető</p>
+</section>
+<section id="a-bázisfüggvények-ereje-2.-felvonás" class="level3" data-number="3.2.5">
+<h3 data-number="3.2.5" class="anchored" data-anchor-id="a-bázisfüggvények-ereje-2.-felvonás"><span class="header-section-number">3.2.5</span> A bázisfüggvények ereje, 2. felvonás</h3>
+<p>Ráadásul az <span class="math inline">\(\mathbf{X}\)</span> modellmátrix (design mátrix) előállítása is nagyon könnyű lesz: az <span class="math inline">\(i\)</span>-edik sora</p>
+<p><span class="math display">\[
+\left[ b_1\left(x_i\right), b_2\left(x_i\right), \ldots, b_q\left(x_i\right) \right]
+\]</span></p>
+<p>Így maga a mátrix az <span class="math inline">\(\mathbf{x}\)</span> és az <span class="math inline">\(\left[1,2,\ldots,q\right]\)</span> vektor <em>külső szorzata</em> (tenzorszorzata), ha a művelet alatt az oszlopban szereplő érték által meghatározott bázisfüggvény sorbeli elemre történő alkalmazását értjük, tehát <span class="math inline">\(i\otimes j:=b_j\left(x_i\right)\)</span>, és így</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp; \begin{pmatrix} \quad 1 &amp; \qquad \enspace 2 &amp; \quad \; \cdots &amp; \quad q\quad \; \end{pmatrix} \\
+\begin{pmatrix}x_1\\x_2\\ \vdots \\ x_n\end{pmatrix} &amp; \begin{bmatrix}b_1\left(x_1\right) &amp; b_2\left(x_1\right) &amp; \cdots &amp; b_q\left(x_1\right) \\ b_1\left(x_2\right) &amp; b_2\left(x_2\right) &amp; \cdots &amp; b_q\left(x_2\right) \\ \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\ b_1\left(x_n\right) &amp; b_2\left(x_n\right) &amp; \cdots &amp; b_q\left(x_n\right) \end{bmatrix}
+\end{aligned}
+\]</span></p>
+<p>Így, a teljes modellmátrix egy lépésben megkapható…</p>
+<p>… majd közvetlenül rakható is bele a sima lineáris regresszióba (ld. 1. előny):</p>
+<p><span class="math display">\[
+\widehat{\boldsymbol{\beta}}=\left(\mathbf{X}^T\mathbf{X}\right)^{-1}\mathbf{X}^T\mathbf{y}
+\]</span></p>
+</section>
+<section id="megvalósítás-r-alatt" class="level3" data-number="3.2.6">
+<h3 data-number="3.2.6" class="anchored" data-anchor-id="megvalósítás-r-alatt"><span class="header-section-number">3.2.6</span> Megvalósítás <code>R</code> alatt</h3>
+<p>Folytassuk az előző fejezet példáját, csak az egyszerűség kedvéért a <span class="math inline">\(\left[0,1\right]\)</span> intervallumon lévő <span class="math inline">\(x\)</span>-szel (ha nem is így lenne, ez átskálázással mindig elérhető):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">30</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">runif</span>(n, <span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>xgrid <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">length.out =</span> <span class="dv">100</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>ygrid <span class="ot">&lt;-</span> <span class="dv">100</span><span class="sc">*</span>xgrid<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>yobs <span class="ot">&lt;-</span> <span class="dv">100</span><span class="sc">*</span>x<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, <span class="dv">5</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="fu">data.frame</span>(x, yobs)) <span class="sc">+</span> <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> yobs)) <span class="sc">+</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">data.frame</span>(xgrid, ygrid), <span class="fu">aes</span>(<span class="at">x =</span> xgrid, <span class="at">y =</span> ygrid),</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>              <span class="at">color =</span> <span class="st">"orange"</span>, <span class="at">lwd =</span> <span class="dv">1</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>p</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline-regresszio_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>A csomópontokat egyenletesen vesszük fel, számuk <span class="math inline">\(q-2\)</span>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>xk <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span><span class="sc">/</span><span class="dv">5</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>q <span class="ot">&lt;-</span> <span class="fu">length</span>(xk) <span class="sc">+</span> <span class="dv">2</span></span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>A bázisfüggvényeknél említett <span class="math inline">\(R\)</span> függvény:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>rk <span class="ot">&lt;-</span> <span class="cf">function</span>( x, z ) {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    ((z<span class="fl">-0.5</span>)<span class="sc">^</span><span class="dv">2-1</span><span class="sc">/</span><span class="dv">12</span>)<span class="sc">*</span>((x<span class="fl">-0.5</span>)<span class="sc">^</span><span class="dv">2-1</span><span class="sc">/</span><span class="dv">12</span>)<span class="sc">/</span><span class="dv">4</span><span class="sc">-</span>((<span class="fu">abs</span>(x<span class="sc">-</span>z)<span class="sc">-</span><span class="fl">0.5</span>)<span class="sc">^</span><span class="dv">4</span><span class="sc">-</span>(<span class="fu">abs</span>(x<span class="sc">-</span>z)<span class="sc">-</span><span class="fl">0.5</span>)<span class="sc">^</span><span class="dv">2</span><span class="sc">/</span><span class="dv">2</span><span class="sc">+</span><span class="dv">7</span><span class="sc">/</span><span class="dv">240</span>)<span class="sc">/</span><span class="dv">24</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>A modellmátrixot csupa 1-gyel inicializáljuk, így az első oszlop rendben is lesz:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">1</span>, n, q) </span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Beállítjuk a második oszlopot is:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>X[, <span class="dv">2</span>] <span class="ot">&lt;-</span> x</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>És most jön a trükk: az <code>outer</code> tetszőleges függvénnyel tud „külső szorzatot” képezni:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>X[, <span class="dv">3</span><span class="sc">:</span>q] <span class="ot">&lt;-</span> <span class="fu">outer</span>(x, xk, <span class="at">FUN =</span> rk)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Mindezeket a késsőbbiekre tekintettel egy függvénybe is összefoghatjuk:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>spl.X <span class="ot">&lt;-</span> <span class="cf">function</span>(x, xk) {</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    q <span class="ot">&lt;-</span> <span class="fu">length</span>(xk) <span class="sc">+</span> <span class="dv">2</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    n <span class="ot">&lt;-</span> <span class="fu">length</span>(x)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    X <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">1</span>, n, q)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    X[, <span class="dv">2</span>] <span class="ot">&lt;-</span> x</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    X[, <span class="dv">3</span><span class="sc">:</span>q] <span class="ot">&lt;-</span> <span class="fu">outer</span>(x, xk, <span class="at">FUN =</span> rk)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    X</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Ezzel a modellmátrixszal végrehajthatjuk a regressziót (ne felejtsük, tengelymetszetre nincs szükség, pontosabban külön tengelymetszre nincs, hiszen az már benne van az így összerakott <code>X</code>-ben):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(yobs <span class="sc">~</span> X <span class="sc">-</span> <span class="dv">1</span> )</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Az eredmény szemléltetéséhez az <code>xgrid</code> pontjait is kifejtjük a spline-nal:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>Xp <span class="ot">&lt;-</span> <span class="fu">spl.X</span>(xgrid, xk)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>yp <span class="ot">&lt;-</span> Xp<span class="sc">%*%</span><span class="fu">coef</span>(fit)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">data.frame</span>(xgrid, yp), <span class="fu">aes</span>(<span class="at">x =</span> xgrid, <span class="at">y =</span> yp))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline-regresszio_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Még egy kicsit automatizáljunk:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>predspline <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, q) {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    xk <span class="ot">&lt;-</span> (<span class="dv">1</span><span class="sc">:</span>(q<span class="dv">-2</span>))<span class="sc">/</span>(q<span class="dv">-1</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    X <span class="ot">&lt;-</span> <span class="fu">spl.X</span>(x, xk)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> X <span class="sc">-</span> <span class="dv">1</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    xp <span class="ot">&lt;-</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">100</span><span class="sc">/</span><span class="dv">100</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    Xp <span class="ot">&lt;-</span> <span class="fu">spl.X</span>(xp, xk)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    yp <span class="ot">&lt;-</span> Xp<span class="sc">%*%</span><span class="fu">coef</span>(fit)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(<span class="at">fit =</span> fit, <span class="at">xp =</span> xp, <span class="at">yp =</span> yp)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Így például könnyen megnézhetjük az eredményt különböző <span class="math inline">\(q\)</span>-kkal:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">with</span>(<span class="fu">predspline</span>(x, yobs, <span class="dv">6</span>), <span class="fu">data.frame</span>(xp, yp)),</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> xp, <span class="at">y =</span> yp))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline-regresszio_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">with</span>(<span class="fu">predspline</span>(x, yobs, <span class="dv">11</span>), <span class="fu">data.frame</span>(xp, yp)),</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> xp, <span class="at">y =</span> yp))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline-regresszio_files/figure-html/unnamed-chunk-12-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">with</span>(<span class="fu">predspline</span>(x, yobs, <span class="dv">3</span>), <span class="fu">data.frame</span>(xp, yp)),</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> xp, <span class="at">y =</span> yp))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline-regresszio_files/figure-html/unnamed-chunk-12-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Látszik, hogy a <span class="math inline">\(q=6\)</span> nagyjából megfelelő, a 11 kicsit sok, a 3 pedig egy leheletnyit mintha kevés lenne. (Most persze könnyű dolgunk van, hiszen tudjuk mi az igazság!) Erre a kérdésre nemsokára visszatérünk.</p>
+</section>
+</section>
+<section id="penalizálás" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="penalizálás"><span class="header-section-number">3.3</span> Penalizálás</h2>
+<section id="dimenzió-meghatározása" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="dimenzió-meghatározása"><span class="header-section-number">3.3.1</span> Dimenzió meghatározása</h3>
+<p>A <span class="math inline">\(q\)</span> dimenzió tehát az illeszkedés szabadságát határozza meg</p>
+<p>Valahogy ezt is meg kellene határozni</p>
+<p>Jön a fő kérdéskör: a túlilleszkedés elleni védekezés</p>
+<p>Milyen legyen a „simítás foka”?</p>
+</section>
+<section id="simítás-fokának-meghatározása" class="level3" data-number="3.3.2">
+<h3 data-number="3.3.2" class="anchored" data-anchor-id="simítás-fokának-meghatározása"><span class="header-section-number">3.3.2</span> Simítás fokának meghatározása</h3>
+<p>Tehát <span class="math inline">\(q\)</span>-t kellene valahogy jól belőni</p>
+<p>Egyszerű <em>modellszelekció</em>?</p>
+<ul>
+<li>Vagy nem beágyazott modellek szelekciója, vagy nem ekvidisztáns knot-ok, egyik sem túl szerencsés</li>
+</ul>
+<p>Alternatív ötlet: <span class="math inline">\(q\)</span> legyen inkább rögzített (elég nagy értéken, kicsit a várható fölé lőve), de a függvényformát nem engedjük teljesen szabadon alakulni</p>
+<p>Hogyan? Büntetjük a túl „zizegős” függvényt!</p>
+<p>Ez épp a <strong>penalizált regresszió</strong> alapötlete</p>
+<p>És ami rendkívül fontos: így már jellemzően sem <span class="math inline">\(q\)</span> pontos megválasztása, sem a knot-ok pontos helye nem bír nagy jelentőséggel (választhatjuk például egyenletesen)!</p>
+</section>
+<section id="penalizált-regresszió" class="level3" data-number="3.3.3">
+<h3 data-number="3.3.3" class="anchored" data-anchor-id="penalizált-regresszió"><span class="header-section-number">3.3.3</span> Penalizált regresszió</h3>
+<p>Klasszikus megoldás: a második derivált jelzi adott pontban a „zizegősséget”, ezt kiintegrálva kapunk egy összesített mértéket az egész függvényre</p>
+<p>Valamilyen súllyal ezt vegyük figyelembe:</p>
+<p><span class="math display">\[
+    \left\|\mathbf{y}-\mathbf{X}\boldsymbol{\beta}\right\|^2+\lambda\int_0^1 \left[f''\left(x\right)\right]^2 \mathop{}\!{\mathrm{d}} x
+\]</span></p>
+<p>A <span class="math inline">\(\lambda\)</span> a <em>simítási paraméter</em>, ez határozza meg a trade-off-ot a jó illeszkedés és a simaság között</p>
+<ul>
+<li><span class="math inline">\(\lambda=0\)</span>: penalizálatlan becslés, <span class="math inline">\(\lambda\rightarrow\infty\)</span>: egyenes regressziós függvény</li>
+</ul>
+</section>
+<section id="a-simasági-büntetőtag-meghatározása" class="level3" data-number="3.3.4">
+<h3 data-number="3.3.4" class="anchored" data-anchor-id="a-simasági-büntetőtag-meghatározása"><span class="header-section-number">3.3.4</span> A simasági büntetőtag meghatározása</h3>
+<p>A regressziós függvény alakja: <span class="math inline">\(f\left(x\right)=\sum_{i=1}^q \beta_i b_i\left(x\right)\)</span></p>
+<p>Kétszer deriválva: <span class="math inline">\(f''\left(x\right)=\sum_{i=1}^q \beta_i b_i''\left(x\right)\)</span></p>
+<p>Négyzetre emelve: <span class="math inline">\(\left[f''\left(x\right)\right]^2=\sum_{i=1}^q \sum_{j=1}^q \beta_i b_i''\left(x\right) b_j''\left(x\right) \beta_j\)</span></p>
+<p>Kiintegrálva: <span class="math inline">\(\int_0^1 \left[f''\left(x\right)\right]^2 \mathop{}\!{\mathrm{d}} x=\sum_{i=1}^q \sum_{j=1}^q \beta_i \left(\int_0^1 b_i''\left(x\right) b_j''\left(x\right) \mathop{}\!{\mathrm{d}} x\right) \beta_j\)</span></p>
+<p>De hát ez épp egy <em>kvadratikus alak</em>! (<span class="math inline">\(\sum_{i=1}^q \sum_{j=1}^q x_i a_{ij} x_j= \mathbf{x}^T \mathbf{A} \mathbf{x}\)</span>)</p>
+<p>Legyen <span class="math inline">\(S_{ij}=\int_0^1 b_i''\left(x\right) b_j''\left(x\right) \mathop{}\!{\mathrm{d}} x\)</span> és <span class="math inline">\(\mathbf{S}\)</span> az ezekből alkotott mátrix, akkor tehát a simítási büntetőtag:</p>
+<p><span class="math display">\[
+    \lambda \boldsymbol{\beta}^T\mathbf{S}\boldsymbol{\beta}
+\]</span></p>
+<p>Az előbb definiált <span class="math inline">\(R\)</span>-rel <span class="math inline">\(\mathbf{S}\)</span> alakja nagyon egyszerű lesz: <span class="math inline">\(S_{i+2,j+2}=R\left(x_i^{\ast},x_j^{\ast}\right)\)</span>, az első két oszlop és sor pedig csupa nulla</p>
+</section>
+<section id="megvalósítás-r-alatt-1" class="level3" data-number="3.3.5">
+<h3 data-number="3.3.5" class="anchored" data-anchor-id="megvalósítás-r-alatt-1"><span class="header-section-number">3.3.5</span> Megvalósítás <code>R</code> alatt</h3>
+<p>Az <code>xk</code> szokásosan a knot-ok helye; a mátrixot pedig csupa nullával inicializáljuk, hogy az első két oszlop és sor egyből jó is legyen és csak a többit kelljen kitölteni:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>spl.S <span class="ot">&lt;-</span> <span class="cf">function</span>(xk) {</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    q <span class="ot">&lt;-</span> <span class="fu">length</span>(xk) <span class="sc">+</span> <span class="dv">2</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    S <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, q, q)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    S[<span class="dv">3</span><span class="sc">:</span>q, <span class="dv">3</span><span class="sc">:</span>q] <span class="ot">&lt;-</span> <span class="fu">outer</span>(xk, xk, <span class="at">FUN =</span> rk)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    S</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="a-simítási-büntetőtag-beépítése-a-regressziós-célfüggvénybe" class="level3" data-number="3.3.6">
+<h3 data-number="3.3.6" class="anchored" data-anchor-id="a-simítási-büntetőtag-beépítése-a-regressziós-célfüggvénybe"><span class="header-section-number">3.3.6</span> A simítási büntetőtag beépítése a regressziós célfüggvénybe</h3>
+<p>Kényelmes lenne, ha <span class="math inline">\(\left\|\mathbf{y}-\mathbf{X}\boldsymbol{\beta}\right\|^2+\lambda \boldsymbol{\beta}^T\mathbf{S}\boldsymbol{\beta}\)</span> helyett írhatnánk egyetlen normát célfüggvényként</p>
+<p>Ez nem nehéz, ha a második tagot át tudjuk normává alakítani, hiszen (innentől némi blokkmátrix műveletekre szükség lesz)</p>
+<p><span class="math display">\[
+\left\|\mathbf{a}\right\|^2+\left\|\mathbf{b}\right\|^2=\left\|\begin{pmatrix}\mathbf{a} \\ \mathbf{b} \end{pmatrix}\right\|^2
+\]</span></p>
+<p>Legyen <span class="math inline">\(\mathbf{B}\)</span> olyan, hogy <span class="math inline">\(\mathbf{B}^T\mathbf{B}=\mathbf{S}\)</span> (pl. spektrális dekompozícióval, vagy Cholesky-dekompozícióval megtalálható a mátrix ilyen „négyzetgyöke”), ekkor</p>
+<p><span class="math display">\[
+\lambda \boldsymbol{\beta}^T\mathbf{S}\boldsymbol{\beta} = \lambda \boldsymbol{\beta}^T\mathbf{B}^T\mathbf{B}\boldsymbol{\beta}=\lambda \left( \mathbf{B} \boldsymbol{\beta}\right)^T\mathbf{B}\boldsymbol{\beta} =\left( \sqrt{\lambda} \mathbf{B} \boldsymbol{\beta}\right)^T\left(\sqrt{\lambda}\mathbf{B}\boldsymbol{\beta}\right)
+\]</span></p>
+<p>Ezzel meg is vagyunk, hiszen a norma egyszerűen <span class="math inline">\(\left\|\mathbf{a}\right\|^2=\mathbf{a}^T\mathbf{a}\)</span>, így</p>
+<p><span class="math display">\[
+\lambda \boldsymbol{\beta}^T\mathbf{S}\boldsymbol{\beta} = \left\|\sqrt{\lambda} \mathbf{B} \boldsymbol{\beta}\right\|^2
+\]</span></p>
+<p>ahonnan</p>
+<p><span class="math display">\[
+\left\|\mathbf{y}-\mathbf{X}\boldsymbol{\beta}\right\|^2+\lambda \boldsymbol{\beta}^T\mathbf{S}\boldsymbol{\beta}=\left\|\mathbf{y}-\mathbf{X}\boldsymbol{\beta}\right\|^2+\left\|\sqrt{\lambda} \mathbf{B} \boldsymbol{\beta}\right\|^2
+\]</span></p>
+<p>és így, az előzőek szerint</p>
+<p><span class="math display">\[
+\left\|\mathbf{y}-\mathbf{X}\boldsymbol{\beta}\right\|^2+\left\|\sqrt{\lambda} \mathbf{B} \boldsymbol{\beta}\right\|^2=\left\|\begin{pmatrix}\mathbf{y}-\mathbf{X}\boldsymbol{\beta} \\ \sqrt{\lambda} \mathbf{B} \boldsymbol{\beta} \end{pmatrix}\right\|^2
+\]</span></p>
+<p>Jó lenne <span class="math inline">\(\boldsymbol{\beta}\)</span>-t kiemelni; ez nem is túl nehéz, hiszen <span class="math inline">\(\mathbf{a}\)</span> és <span class="math inline">\(-\mathbf{a}\)</span> normája ugyanaz:</p>
+<p><span class="math display">\[
+\left\|\begin{pmatrix}\mathbf{y}-\mathbf{X}\boldsymbol{\beta} \\ \sqrt{\lambda} \mathbf{B} \boldsymbol{\beta} \end{pmatrix}\right\|^2 = \left\| \begin{pmatrix} \mathbf{y} \\ \mathbf{0} \end{pmatrix} - \begin{pmatrix}\mathbf{X} \\ \sqrt{\lambda} \mathbf{B} \end{pmatrix}\boldsymbol{\beta}\right\|^2
+\]</span></p>
+</section>
+<section id="regresszió-megoldása-a-penalizálással" class="level3" data-number="3.3.7">
+<h3 data-number="3.3.7" class="anchored" data-anchor-id="regresszió-megoldása-a-penalizálással"><span class="header-section-number">3.3.7</span> Regresszió megoldása a penalizálással</h3>
+<p>Innentől a regresszió játszi könnyedséggel (értsd: a szokványos, nem is penalizált eszköztárral) megoldható, csak <span class="math inline">\(\mathbf{X}\)</span> szerepét <span class="math inline">\(\begin{pmatrix}\mathbf{X} \\ \sqrt{\lambda} \mathbf{B} \end{pmatrix}\)</span>, <span class="math inline">\(\mathbf{y}\)</span> szerepét <span class="math inline">\(\begin{pmatrix} \mathbf{y} \\ \mathbf{0} \end{pmatrix}\)</span> játssza</p>
+<p>Így az „<span class="math inline">\(\mathbf{X}^T\mathbf{X}\)</span>” épp <span class="math inline">\(\mathbf{X}^T\mathbf{X}+\lambda \mathbf{B}^T\mathbf{B}=\mathbf{X}^T\mathbf{X}+\lambda\mathbf{S}\)</span> lesz</p>
+<p>Az „<span class="math inline">\(\mathbf{X}^T\mathbf{y}\)</span>” pedig <span class="math inline">\(\mathbf{X}^T\mathbf{y}\)</span> (a kiegészített eredményváltozóban lévő nullák épp a magyarázó változók kiegészítését ütik ki)</p>
+<p>Így az OLS megoldás:</p>
+<p><span class="math display">\[
+\widehat{\boldsymbol{\beta}}=\left(\mathbf{X}^T\mathbf{X}+\lambda\mathbf{S}\right)^{-1}\mathbf{X}^T\mathbf{y}
+\]</span></p>
+<p>(Persze a gyakorlatban ennek közvetlen számítása helyett célszerűbb az augmentált eredmény- és magyarázóváltozókat berakni egy hatékonyabb lineáris regressziót megoldó módszerbe)</p>
+</section>
+<section id="megvalósítás-r-alatt-2" class="level3" data-number="3.3.8">
+<h3 data-number="3.3.8" class="anchored" data-anchor-id="megvalósítás-r-alatt-2"><span class="header-section-number">3.3.8</span> Megvalósítás <code>R</code> alatt</h3>
+<p>Mátrix „gyökének” a számítása (spektrális felbontással):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>mat.sqrt <span class="ot">&lt;-</span> <span class="cf">function</span>(S) {</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    d <span class="ot">&lt;-</span> <span class="fu">eigen</span>(S, <span class="at">symmetric =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    d<span class="sc">$</span>vectors<span class="sc">%*%</span><span class="fu">diag</span>(d<span class="sc">$</span>values<span class="sc">^</span><span class="fl">0.5</span>)<span class="sc">%*%</span><span class="fu">t</span>(d<span class="sc">$</span>vectors)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Ahogy volt róla, penalizálás mellett a <span class="math inline">\(q\)</span> pontos értéke nem túl fontos, csak ne legyen túl kicsi, ezért használjunk most <span class="math inline">\(q=20\)</span>-at.</p>
+<p>A penalizált becslés az augmentált modellmátrix használatával (kihasználjuk, hogy ha nem létező elemre hivatkozunk, az R automatikusan kiegészíti a vektort):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>predsplinepen <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, q, lambda) {</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    xk <span class="ot">&lt;-</span> (<span class="dv">1</span><span class="sc">:</span>(q<span class="dv">-2</span>))<span class="sc">/</span>(q<span class="dv">-1</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    Xa <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="fu">spl.X</span>(x, xk), <span class="fu">sqrt</span>(lambda) <span class="sc">*</span> <span class="fu">mat.sqrt</span>(<span class="fu">spl.S</span>(xk)))</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    ya <span class="ot">&lt;-</span> <span class="fu">c</span>(y, <span class="fu">rep</span>(<span class="dv">0</span>, q))</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(ya <span class="sc">~</span> Xa <span class="sc">-</span> <span class="dv">1</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    xp <span class="ot">&lt;-</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">100</span><span class="sc">/</span><span class="dv">100</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    Xp <span class="ot">&lt;-</span> <span class="fu">spl.X</span>(xp, xk)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    yp <span class="ot">&lt;-</span> Xp<span class="sc">%*%</span><span class="fu">coef</span>(fit)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(<span class="at">fit =</span> fit, <span class="at">xp =</span> xp, <span class="at">yp =</span> yp)</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Ezzel könnyen meghatározhatjuk az eredményt különböző <span class="math inline">\(\lambda\)</span>-kra:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">with</span>(<span class="fu">predsplinepen</span>(x, yobs, <span class="dv">20</span>, <span class="dv">1</span>), <span class="fu">data.frame</span>(xp, yp)),</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> xp, <span class="at">y =</span> yp))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline-regresszio_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">with</span>(<span class="fu">predsplinepen</span>(x, yobs, <span class="dv">20</span>, <span class="fl">0.001</span>), <span class="fu">data.frame</span>(xp, yp)),</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> xp, <span class="at">y =</span> yp))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline-regresszio_files/figure-html/unnamed-chunk-16-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">with</span>(<span class="fu">predsplinepen</span>(x, yobs, <span class="dv">20</span>, <span class="fl">0.000001</span>), <span class="fu">data.frame</span>(xp, yp)),</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> xp, <span class="at">y =</span> yp))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline-regresszio_files/figure-html/unnamed-chunk-16-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Látható, hogy a <span class="math inline">\(\lambda=1\)</span> túl nagy, a <span class="math inline">\(0,\!001\)</span> jónak tűnik, a <span class="math inline">\(0,\!000001\)</span> túl kicsi.</p>
+</section>
+</section>
+<section id="simítási-paraméter-meghatározása" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="simítási-paraméter-meghatározása"><span class="header-section-number">3.4</span> Simítási paraméter meghatározása</h2>
+<section id="a-simítási-paraméter-meghatározása" class="level3" data-number="3.4.1">
+<h3 data-number="3.4.1" class="anchored" data-anchor-id="a-simítási-paraméter-meghatározása"><span class="header-section-number">3.4.1</span> A simítási paraméter meghatározása</h3>
+<p>Kérdés még a <span class="math inline">\(\lambda\)</span> értéke</p>
+<p>Sima OLS-jellegű eljárással, tehát a reziduális négyzetösszeg minimalizálást tűzve ki célul nyilván nem határozható meg (hiszen az mindig 0-t adna)</p>
+<p>Épp az a lényeg, hogy a túlilleszkedésre is tekintettel legyünk</p>
+<p>Ötlet: keresztvalidáció</p>
+</section>
+<section id="keresztvalidációs-módszerek-ocv" class="level3" data-number="3.4.2">
+<h3 data-number="3.4.2" class="anchored" data-anchor-id="keresztvalidációs-módszerek-ocv"><span class="header-section-number">3.4.2</span> Keresztvalidációs módszerek: OCV</h3>
+<p>Mindig egy pontot hagyunk ki, és így számolunk hibát: OCV</p>
+<p>(Szokták egy-kihagyásos keresztvalidációnak, LOOCV-nek is nevezni)</p>
+<p>Tehát:</p>
+<p><span class="math display">\[
+    E_{OCV}=\frac{1}{n}\sum_{i=1}^n \left( \widehat{f}_i^{\left[-i\right]} - y_i\right)^2
+\]</span></p>
+<p>Szerencsére nem kell ténylegesen <span class="math inline">\(n\)</span>-szer lefuttatni a regressziót mert belátható, hogy</p>
+<p><span class="math display">\[
+    E_{OCV}=\frac{1}{n}\sum_{i=1}^n \left(y_i - \widehat{f}_i\right)^2/\left(1-A_{ii}\right)^2,
+\]</span></p>
+<p>ahol <span class="math inline">\(\mathbf{A}\)</span> az influence mátrix</p>
+</section>
+<section id="keresztvalidációs-módszerek-gcv" class="level3" data-number="3.4.3">
+<h3 data-number="3.4.3" class="anchored" data-anchor-id="keresztvalidációs-módszerek-gcv"><span class="header-section-number">3.4.3</span> Keresztvalidációs módszerek: GCV</h3>
+<p>Ha az <span class="math inline">\(A_{ii}\)</span>-ket az átlagukkal helyettesítjük, akkor az általánosított keresztvalidációhoz jutunk (GCV)</p>
+<p>Tehát:</p>
+<p><span class="math display">\[
+    E_{GCV}=\frac{1}{n}\sum_{i=1}^n \left(y_i - \widehat{f}_i\right)^2/\left[\mathrm{tr}\left(\mathbf{I}-\mathbf{A}\right)\right]^2
+\]</span></p>
+</section>
+<section id="megvalósítás-r-alatt-3" class="level3" data-number="3.4.4">
+<h3 data-number="3.4.4" class="anchored" data-anchor-id="megvalósítás-r-alatt-3"><span class="header-section-number">3.4.4</span> Megvalósítás <code>R</code> alatt</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>predV <span class="ot">&lt;-</span> <span class="dv">10</span><span class="sc">^</span>(<span class="fu">seq</span>(<span class="sc">-</span><span class="dv">8</span>, <span class="dv">3</span>, <span class="at">length.out =</span> <span class="dv">100</span>))</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>V <span class="ot">&lt;-</span> <span class="fu">sapply</span>(predV, <span class="cf">function</span>(lambda) {</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    fit <span class="ot">&lt;-</span> <span class="fu">predsplinepen</span>(x, yobs, <span class="dv">20</span>, lambda)<span class="sc">$</span>fit</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    trA <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">influence</span>(fit)<span class="sc">$</span>hat[<span class="dv">1</span><span class="sc">:</span>n])</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    rss <span class="ot">&lt;-</span> <span class="fu">sum</span>((yobs <span class="sc">-</span> <span class="fu">fitted</span>(fit)[<span class="dv">1</span><span class="sc">:</span>n])<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    n<span class="sc">*</span>rss<span class="sc">/</span>(n <span class="sc">-</span> trA)<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>} )</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">data.frame</span>(predV, V), <span class="fu">aes</span>(<span class="at">x =</span> predV, <span class="at">y =</span> V)) <span class="sc">+</span> <span class="fu">geom_line</span>() <span class="sc">+</span> <span class="fu">scale_x_log10</span>()</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline-regresszio_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>A legjobb <span class="math inline">\(\lambda\)</span> konkrét érték:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>predV[<span class="fu">which.min</span>(V)]</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.0003593814</code></pre>
+</div>
+</div>
+<p>És az – ilyen értelemben – optimális spline ezzel:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">with</span>(<span class="fu">predsplinepen</span>(x, yobs, <span class="dv">20</span>, predV[<span class="fu">which.min</span>(V)]),</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>                          <span class="fu">data.frame</span>(xp, yp)), <span class="fu">aes</span>(<span class="at">x =</span> xp, <span class="at">y =</span> yp))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline-regresszio_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Kimásolva!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Kimásolva!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ferenci-tamas\.github\.io\/simitas-spline-additiv-modell");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./spline.html" class="pagination-link" aria-label="Spline fogalma, lineáris regressziótól a spline-regresszióig">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Spline fogalma, lineáris regressziótól a spline-regresszióig</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./additiv-modell.html" class="pagination-link" aria-label="Additív modellek">
+        <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Additív modellek</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/edit/main/spline-regresszio.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/blob/main/spline-regresszio.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></div></div></footer><script type="text/javascript">
+var sc_project=12422840; 
+var sc_invisible=1; 
+var sc_security="d32cce24"; 
+</script>
+<script type="text/javascript" src="https://www.statcounter.com/counter/counter.js" async=""></script>
+<noscript><div class="statcounter"><a title="ingyenes
+webstatisztika" href="https://www.statcounter.hu/" target="_blank"><img class="statcounter" src="https://c.statcounter.com/12422840/0/d32cce24/1/" alt="ingyenes webstatisztika" referrerpolicy="no-referrer-when-downgrade"></a></div></noscript>
+
+
+
+
+</body></html>

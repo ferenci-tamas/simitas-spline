@@ -1,0 +1,66 @@
+project:
+  type: book
+  output-dir: docs
+  
+lang: hu-HU
+language: _language-hu.yml
+
+filters:
+  - pandoc-quotes.lua
+
+book:
+  title: "Simítás, spline-regresszió, additív modellek"
+  author:
+    - name:
+        given: Tamás
+        family: Ferenci
+        literal: Ferenci Tamás
+      email: tamas.ferenci@medstat.hu
+      url: https://www.medstat.hu/
+  date: today
+  date-format: "YYYY. MMMM D."
+  downloads: [pdf, epub]
+  sharing: [twitter, facebook, linkedin]
+  cover-image: cover.jpg
+  cover-image-alt: "Simítógörbék"
+  image: cover.jpg
+  image-alt: "Simítógörbék"
+  open-graph: true
+  twitter-card: true
+  site-url: https://ferenci-tamas.github.io/simitas-spline-additiv-modell
+  repo-url: https://github.com/ferenci-tamas/simitas-spline-additiv-modell
+  repo-actions: [edit, source, issue]
+  description: "Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik."
+  language: hu-HU
+  output-file: "ferenci-tamas-simitas-spline-additiv-modell"
+  chapters:
+    - index.qmd
+    - LOESS.qmd
+    - spline.qmd
+    - spline-regresszio.qmd
+    - additiv-modell.qmd
+
+format:
+  html:
+    theme: cosmo
+    include-after-body:
+      text: |
+        <script type="text/javascript">
+        var sc_project=12422840; 
+        var sc_invisible=1; 
+        var sc_security="d32cce24"; 
+        </script>
+        <script type="text/javascript"
+        src="https://www.statcounter.com/counter/counter.js"
+        async></script>
+        <noscript><div class="statcounter"><a title="ingyenes
+        webstatisztika" href="https://www.statcounter.hu/"
+        target="_blank"><img class="statcounter"
+        src="https://c.statcounter.com/12422840/0/d32cce24/1/"
+        alt="ingyenes webstatisztika"
+        referrerPolicy="no-referrer-when-downgrade"></a></div></noscript>
+  pdf:
+    documentclass: scrreprt
+    links-as-notes: true
+  epub:
+    cover-image: cover.jpg

@@ -1,0 +1,5 @@
+# Additív modellek
+
+## Több magyarázó változó
+
+Eddig egy magyarázó változó esetével foglalkoztunk

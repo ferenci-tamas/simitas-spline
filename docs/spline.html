@@ -6,10 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Ferenci Tamás">
 <meta name="description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
 
-<title>Simítás, spline-regresszió, additív modellek</title>
+<title>2&nbsp; Spline fogalma, lineáris regressziótól a spline-regresszióig – Simítás, spline-regresszió, additív modellek</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -67,7 +66,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./LOESS.html" rel="next">
+<link href="./spline-regresszio.html" rel="next">
+<link href="./LOESS.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
@@ -106,16 +106,47 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
-<meta property="og:title" content="Simítás, spline-regresszió, additív modellek">
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<meta property="og:title" content="2&nbsp; Spline fogalma, lineáris regressziótól a spline-regresszióig – Simítás, spline-regresszió, additív modellek">
 <meta property="og:description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
-<meta property="og:image" content="https://ferenci-tamas.github.io/simitas-spline-additiv-modell/cover.jpg">
+<meta property="og:image" content="https://ferenci-tamas.github.io/simitas-spline-additiv-modell/spline_files/figure-html/unnamed-chunk-2-1.png">
 <meta property="og:site_name" content="Simítás, spline-regresszió, additív modellek">
-<meta property="og:image:alt" content="Simítógörbék">
-<meta name="twitter:title" content="Simítás, spline-regresszió, additív modellek">
+<meta property="og:image:height" content="960">
+<meta property="og:image:width" content="1344">
+<meta name="twitter:title" content="2&nbsp; Spline fogalma, lineáris regressziótól a spline-regresszióig – Simítás, spline-regresszió, additív modellek">
 <meta name="twitter:description" content="Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.">
-<meta name="twitter:image" content="https://ferenci-tamas.github.io/simitas-spline-additiv-modell/cover.jpg">
-<meta name="twitter:image:alt" content="Simítógörbék">
+<meta name="twitter:image" content="https://ferenci-tamas.github.io/simitas-spline-additiv-modell/spline_files/figure-html/unnamed-chunk-2-1.png">
+<meta name="twitter:image-height" content="960">
+<meta name="twitter:image-width" content="1344">
 <meta name="twitter:card" content="summary_large_image">
 </head>
 
@@ -128,7 +159,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">Előszó</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./spline.html"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Spline fogalma, lineáris regressziótól a spline-regresszióig</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Keresés" onclick="window.quartoOpenSearch();">
@@ -198,7 +229,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Előszó</span></a>
   </div>
 </li>
@@ -210,7 +241,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./spline.html" class="sidebar-item-text sidebar-link">
+  <a href="./spline.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Spline fogalma, lineáris regressziótól a spline-regresszióig</span></span></a>
   </div>
 </li>
@@ -236,40 +267,36 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">Tartalomjegyzék</h2>
    
   <ul>
-  <li><a href="#előszó" id="toc-előszó" class="nav-link active" data-scroll-target="#előszó">Előszó</a></li>
+  <li><a href="#a-regresszió" id="toc-a-regresszió" class="nav-link active" data-scroll-target="#a-regresszió"><span class="header-section-number">2.1</span> A regresszió</a></li>
+  <li><a href="#regresszió-becslése-mintából" id="toc-regresszió-becslése-mintából" class="nav-link" data-scroll-target="#regresszió-becslése-mintából"><span class="header-section-number">2.2</span> Regresszió becslése mintából</a></li>
+  <li><a href="#paraméteres-és-nem-paraméteres-regresszió" id="toc-paraméteres-és-nem-paraméteres-regresszió" class="nav-link" data-scroll-target="#paraméteres-és-nem-paraméteres-regresszió"><span class="header-section-number">2.3</span> Paraméteres és nem-paraméteres regresszió</a></li>
+  <li><a href="#a-lineáris-regresszió-kibővítése-nemlinearitások" id="toc-a-lineáris-regresszió-kibővítése-nemlinearitások" class="nav-link" data-scroll-target="#a-lineáris-regresszió-kibővítése-nemlinearitások"><span class="header-section-number">2.4</span> A lineáris regresszió kibővítése, nemlinearitások</a></li>
+  <li><a href="#egy-példa" id="toc-egy-példa" class="nav-link" data-scroll-target="#egy-példa"><span class="header-section-number">2.5</span> Egy példa</a></li>
+  <li><a href="#regresszió-ötödfokú-polinommal" id="toc-regresszió-ötödfokú-polinommal" class="nav-link" data-scroll-target="#regresszió-ötödfokú-polinommal"><span class="header-section-number">2.6</span> Regresszió ötödfokú polinommal</a></li>
+  <li><a href="#módosítás" id="toc-módosítás" class="nav-link" data-scroll-target="#módosítás"><span class="header-section-number">2.7</span> Módosítás</a></li>
+  <li><a href="#regresszió-tizedfokú-polinommal" id="toc-regresszió-tizedfokú-polinommal" class="nav-link" data-scroll-target="#regresszió-tizedfokú-polinommal"><span class="header-section-number">2.8</span> Regresszió tizedfokú polinommal</a></li>
+  <li><a href="#mi-a-jelenség-oka" id="toc-mi-a-jelenség-oka" class="nav-link" data-scroll-target="#mi-a-jelenség-oka"><span class="header-section-number">2.9</span> Mi a jelenség oka?</a></li>
+  <li><a href="#mi-lehet-a-megoldás" id="toc-mi-lehet-a-megoldás" class="nav-link" data-scroll-target="#mi-lehet-a-megoldás"><span class="header-section-number">2.10</span> Mi lehet a megoldás?</a></li>
+  <li><a href="#természetes-köbös-spline" id="toc-természetes-köbös-spline" class="nav-link" data-scroll-target="#természetes-köbös-spline"><span class="header-section-number">2.11</span> Természetes köbös spline</a></li>
+  <li><a href="#a-példa-regressziója-természetes-köbös-spline-nal" id="toc-a-példa-regressziója-természetes-köbös-spline-nal" class="nav-link" data-scroll-target="#a-példa-regressziója-természetes-köbös-spline-nal"><span class="header-section-number">2.12</span> A példa regressziója természetes köbös spline-nal</a></li>
+  <li><a href="#mi-az-előbbiben-a-fantasztikus" id="toc-mi-az-előbbiben-a-fantasztikus" class="nav-link" data-scroll-target="#mi-az-előbbiben-a-fantasztikus"><span class="header-section-number">2.13</span> Mi az előbbiben a fantasztikus?</a></li>
+  <li><a href="#a-spline-regresszió-ereje" id="toc-a-spline-regresszió-ereje" class="nav-link" data-scroll-target="#a-spline-regresszió-ereje"><span class="header-section-number">2.14</span> A spline-regresszió ereje</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/edit/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/blob/main/index.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/edit/main/spline.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/blob/main/spline.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Simítás, spline-regresszió, additív modellek</h1>
+<h1 class="title"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Spline fogalma, lineáris regressziótól a spline-regresszióig</span></h1>
 </div>
 
-<div>
-  <div class="description">
-    Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.
-  </div>
-</div>
 
 
 <div class="quarto-title-meta">
 
-    <div>
-    <div class="quarto-title-meta-heading">Szerző</div>
-    <div class="quarto-title-meta-contents">
-             <p><a href="https://www.medstat.hu/">Ferenci Tamás</a> <a href="mailto:tamas.ferenci@medstat.hu" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
-          </div>
-  </div>
     
-    <div>
-    <div class="quarto-title-meta-heading">Közzétéve</div>
-    <div class="quarto-title-meta-contents">
-      <p class="date">2025. június 20.</p>
-    </div>
-  </div>
   
     
   </div>
@@ -279,27 +306,176 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-
-<section id="előszó" class="level1 unnumbered">
-<h1 class="unnumbered">Előszó</h1><p><img src="cover.jpg" title="Simítás, spline-regresszió, additív modellek" class="quarto-cover-image nolightbox img-fluid" alt="Simítógörbék"></p>
-<p>Ez a jegyzet simítóeljárásokkal (pl. LOESS), a spline-okkal, és azok regresszióban történő felhasználásával, valamint általában az additív modellekkel foglalkozik.</p>
-<p>Ajánlott irodalom: Simon N. Wood: Generalized Additive Models: an introduction with R (Chapman &amp; Hall/CRC, Texts in Statistical Science sorozat, 2. kiadás, ISBN 9781498728331, 2017).</p>
-<p>A jegyzettel kapcsolatban minden visszajelzést, véleményt, kritikát a lehető legnagyobb örömmel veszek a <a href="tamas.ferenci@medstat.hu">tamas.ferenci@medstat.hu</a> email-címen.</p>
-<p>A jegyzet weboldala <a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell">https://github.com/ferenci-tamas/simitas-spline-additiv-modell</a> címen érhető el.</p>
-<p>Ehhez az anyaghoz csak a <code>data.table</code> és a <code>ggplot2</code> könyvtárakra lesz szükségünk (illetve beállítjuk a véletlenszám-generátor seed-jét<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> a reprodukálhatóság kedvéért):</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-
-
+<section id="a-regresszió" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="a-regresszió"><span class="header-section-number">2.1</span> A regresszió</h2>
+<p>A regresszió legtöbb alkalmazott statisztikai terület talán legfontosabb eszköze</p>
+<p><strong>Regresszió</strong>: változók közti kapcsolat (illetve annak becslése minta alapján)</p>
+<p>„Kapcsolat” formalizálása: függvény a matematikai fogalmával, tehát keressük az</p>
+<p><span class="math display">\[
+Y=f\left(X_1,X_2,\ldots,X_p\right)+\varepsilon=f\left(\mathbf{X}\right)
+\]</span></p>
+<p>függvényt</p>
+<p>(<span class="math inline">\(Y\)</span> eredményváltozó, <span class="math inline">\(X_i\)</span>-k a magyarázó változók)</p>
 </section>
-<section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
-<hr>
-<ol>
-<li id="fn1"><p>A véletlenszám-generátort használó kódok eredménye szükségképp el fog térni bármely két futtatás között, így például az is el fog térni egymástól ami itt látható, és amit valaki kap, ha lefuttatja ugyanezt a kódot. Hogy ezt kiküszöböljük, és az olvasó pontosan ugyanazt az eredményt kapja, érdemes a seed-et beállítani: ezt követően a pontosan ugyanúgy lefuttatott kód ugyanazt az eredményt kell, hogy adja. (Természetesen a véletlenszám-generálásnál kapott számok továbbra is véletlenek lesznek – amennyire eredetileg is azok… – de ugyanabban a sorrendben fognak jönni.)<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-</ol>
+<section id="regresszió-becslése-mintából" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="regresszió-becslése-mintából"><span class="header-section-number">2.2</span> Regresszió becslése mintából</h2>
+<p><strong>Paraméteres regresszió</strong>: ha <em>a priori</em> feltételezzük, hogy az <span class="math inline">\(f\)</span> függvény valamilyen – paraméterek erejéig meghatározott – függvényformájú (az „alakja” ismert), és így a feladat e paraméterek becslésére redukálódik</p>
+<p>Tipikus példa a <strong>lineáris regresszió</strong>: <span class="math inline">\(f\left(\mathbf{X}\right)=\beta_0+\beta_1 X_1 + \beta_2 X_2 + \ldots + \beta_p X_p=\mathbf{X}^T\pmb{\beta}\)</span>, így <span class="math inline">\(Y=\mathbf{X}^T\pmb{\beta}+\varepsilon\)</span></p>
+<p>Ha rendelkezésre állnak az <span class="math inline">\(\left\{y_i,\mathbf{x}_i\right\}_{i=1}^n\)</span> megfigyeléseink a háttéreloszlásra, akkor e mintából megbecsülhetjük a paramétereket például <strong>hagyományos legkisebb négyzetek</strong> (OLS) módszerével:</p>
+<p><span class="math display">\[
+\widehat{\pmb{\beta}}=\mathop{\arg\,\min}_{\mathbf{b}} \sum_{i=1}^n \left[Y_i-\mathbf{X}_i^T\mathbf{b}\right]^2=\left\| \mathbf{Y} - \mathbf{X}\mathbf{b} \right\|^2
+\]</span></p>
+<p>Itt tehát <span class="math inline">\(\mathbf{X}\)</span> az a mátrix, amiben a magyarázó változók elé egy csupa 1 oszlopot szúrtunk, a neve <strong>modellmátrix</strong> vagy design mátrix</p>
+</section>
+<section id="paraméteres-és-nem-paraméteres-regresszió" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="paraméteres-és-nem-paraméteres-regresszió"><span class="header-section-number">2.3</span> Paraméteres és nem-paraméteres regresszió</h2>
+<p>De cserében mindig ott lebeg felettünk a kérdés, hogy a függvényformára <em>jó feltételezést</em> tettünk-e (hiszen ez nem az adatokból következik, ezt „ráerőszakoljuk” az adatokra)</p>
+<p>(Persze ezért van a modelldiagnosztika)</p>
+<p>A nem-paraméteres regresszió <em>flexibilis</em>, olyan értelemben, hogy minden a priori megkötés nélkül követi azt, ami az adatokból következik (a valóság ritkán lineáris?)</p>
+<p>Cserében nehezebb becsülni, és nem kapunk analitikus – jó esetben valamire hasznosítható – regressziós függvényt, nem lehet értelmesen interpolálni és extrapolálni („fordul a kocka” a paraméteres esethez képest)</p>
+</section>
+<section id="a-lineáris-regresszió-kibővítése-nemlinearitások" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="a-lineáris-regresszió-kibővítése-nemlinearitások"><span class="header-section-number">2.4</span> A lineáris regresszió kibővítése, nemlinearitások</h2>
+<p>Maradva a paraméteres keretben, arra azért mód van, hogy a függvényformát kibővítsük (és így flexibilisebbé tegyük)</p>
+<p>Ezzel a különféle <strong>nemlineáris regressziókhoz</strong> jutunk el</p>
+<p>E nemlinearitásoknak két alaptípusa van</p>
+<ul>
+<li><p>Változójában nemlineáris modell (pl. <span class="math inline">\(\beta_0 + \beta_1 x + \beta_2 x^2\)</span>): csak a szó „matematikai értelmében” nemlineáris, ugyanúgy becsülhető OLS-sel</p></li>
+<li><p>Paraméterében nemlineáris modell (pl. <span class="math inline">\(\beta_0x_1^{\beta_1}x_2^{\beta_2}\)</span>): felrúgja a lineáris struktúrát, így érdemileg más, csak linearizálás után, vagy NLS-sel becsülhető</p></li>
+</ul>
+<p>Mi most az első esettel fogunk foglalkozni</p>
+<p>Az itt látott „polinomiális regresszió” valóban nagyon gyakori módszer a flexibilitás növelésére</p>
+</section>
+<section id="egy-példa" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="egy-példa"><span class="header-section-number">2.5</span> Egy példa</h2>
+<p>Tekintsünk most egy másik példát, egy zajos másodfokú függvényt, kevesebb pontból:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">20</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">runif</span>(n, <span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>xgrid <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">10</span>, <span class="at">length.out =</span> <span class="dv">100</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>ygrid <span class="ot">&lt;-</span> xgrid<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>yobs <span class="ot">&lt;-</span> x<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, <span class="dv">5</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>SimData <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(x, xgrid, ygrid, yobs)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(SimData) <span class="sc">+</span> <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> yobs)) <span class="sc">+</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">x =</span> xgrid, <span class="at">y =</span> ygrid), <span class="at">color =</span> <span class="st">"orange"</span>, <span class="at">lwd =</span> <span class="dv">1</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>p</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="regresszió-ötödfokú-polinommal" class="level2" data-number="2.6">
+<h2 data-number="2.6" class="anchored" data-anchor-id="regresszió-ötödfokú-polinommal"><span class="header-section-number">2.6</span> Regresszió ötödfokú polinommal</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>fit5 <span class="ot">&lt;-</span> <span class="fu">lm</span>(yobs <span class="sc">~</span> <span class="fu">poly</span>(x, <span class="dv">5</span>), <span class="at">data =</span> SimData)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">data.frame</span>(xgrid, <span class="at">pred =</span> <span class="fu">predict</span>(fit5, <span class="fu">data.frame</span>(<span class="at">x =</span> xgrid))),</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> xgrid, <span class="at">y =</span> pred))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="módosítás" class="level2" data-number="2.7">
+<h2 data-number="2.7" class="anchored" data-anchor-id="módosítás"><span class="header-section-number">2.7</span> Módosítás</h2>
+<p>Mondjuk, hogy nagyobb flexibilitásra vágyunk</p>
+<ul>
+<li>Például figyelembe akarjuk venni, hogy ez nem tűnik teljesen lineárisnak, vagy meg akarjuk ragadni a finomabb tendenciákat is</li>
+</ul>
+<p>Emeljük a polinom fokszámát (ez nyilván növeli a flexibilitást, hiszen a kisebb fokszám nyilván speciális eset lesz), például 10-re</p>
+<p>Szokás azt mondani, hogy a rang 5 illetve 10 (a polinom fokszáma, a becsülendő paraméterek száma nyilván egyezik a modellmátrix rangjával, de ez a fogalom később, amikor nem is polinomunk van, akkor is használható)</p>
+</section>
+<section id="regresszió-tizedfokú-polinommal" class="level2" data-number="2.8">
+<h2 data-number="2.8" class="anchored" data-anchor-id="regresszió-tizedfokú-polinommal"><span class="header-section-number">2.8</span> Regresszió tizedfokú polinommal</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>fit10 <span class="ot">&lt;-</span> <span class="fu">lm</span>(yobs <span class="sc">~</span> <span class="fu">poly</span>(x, <span class="dv">10</span>), <span class="at">data =</span> SimData)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">data.frame</span>(xgrid, <span class="at">pred =</span> <span class="fu">predict</span>(fit10, <span class="fu">data.frame</span>(<span class="at">x =</span> xgrid))),</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> xgrid, <span class="at">y =</span> pred))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="mi-a-jelenség-oka" class="level2" data-number="2.9">
+<h2 data-number="2.9" class="anchored" data-anchor-id="mi-a-jelenség-oka"><span class="header-section-number">2.9</span> Mi a jelenség oka?</h2>
+<p>Szokás azt mondani, hogy <em>túlilleszkedés</em>, ami persze igaz is, de itt többről van szó</p>
+<p>A polinomok elsősorban <em>lokálisan</em> tudnak jól közelíteni (a Taylor-sorfejtéses érvelés miatt), de nekünk arra lenne szükségünk, hogy <em>globálisan</em> jól viselkedő függvényformát találjunk</p>
+<p>Pedig a polinomokat amúgy szeretjük, többek között azért is, mert szép sima görbét írnak le (matematikai értelemben véve a simaságot: végtelenszer folytonosan deriválhatóak, <span class="math inline">\(C^{\infty}\)</span>-beliek)</p>
+<p>Mi lehet akkor a megoldás?</p>
+</section>
+<section id="mi-lehet-a-megoldás" class="level2" data-number="2.10">
+<h2 data-number="2.10" class="anchored" data-anchor-id="mi-lehet-a-megoldás"><span class="header-section-number">2.10</span> Mi lehet a megoldás?</h2>
+<p>Egy lehetséges megközelítés: „összerakjuk a globálisat több lokálisból”</p>
+<p>Azaz szakaszokra bontjuk a teljes intervallumot, és mindegyiket <em>külön-külön</em> polinommal igyekszünk modellezni</p>
+<p>Így próbáljuk kombinálni a két módszer előnyeit</p>
+<p>Persze a szakaszosan definiált polinomok önmagában még nem jók: a szakaszhatárokon találkozniuk kell (e találkozópontok neve: <strong>knot</strong>, „csomópont”, a számukat <span class="math inline">\(q-2\)</span>-val jelöljük, a pozíciójukat <span class="math inline">\(x_i^{\ast}\)</span>-vel)</p>
+<p>Sőt, ha a simasági tulajdonságokat is át akarjuk vinni, akkor az érintkezési pontokban a deriváltaknak (magasabbrendűeknek is) is egyezniük kell</p>
+<p>Ha <span class="math inline">\(p\)</span>-edfokú polinomokat használunk, akkor az első <span class="math inline">\(p-1\)</span> derivált – és persze a függvényérték – egyezését kell kikötnünk a knot-okban (és esetleg még valamit a végpontokra)</p>
+<p>Ez így már jó konstrukció lesz, a neve: <strong>spline</strong></p>
+</section>
+<section id="természetes-köbös-spline" class="level2" data-number="2.11">
+<h2 data-number="2.11" class="anchored" data-anchor-id="természetes-köbös-spline"><span class="header-section-number">2.11</span> Természetes köbös spline</h2>
+<p>(Azért köbös, mert harmadfokúak a polinomok, és azért természetes, mert azt kötöttük ki, hogy a végpontokban nulla legyen a második derivált)</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="NatCubicSplineWood.png" class="img-fluid figure-img"></p>
+<figcaption>Természetes köbös spline</figcaption>
+</figure>
+</div>
+</section>
+<section id="a-példa-regressziója-természetes-köbös-spline-nal" class="level2" data-number="2.12">
+<h2 data-number="2.12" class="anchored" data-anchor-id="a-példa-regressziója-természetes-köbös-spline-nal"><span class="header-section-number">2.12</span> A példa regressziója természetes köbös spline-nal</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fitSpline <span class="ot">&lt;-</span> <span class="fu">lm</span>(yobs <span class="sc">~</span> splines<span class="sc">::</span><span class="fu">ns</span>(x, <span class="dv">10</span>), <span class="at">data =</span> SimData)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">data.frame</span>(xgrid, <span class="at">pred =</span> <span class="fu">predict</span>(fitSpline, <span class="fu">data.frame</span>(<span class="at">x =</span> xgrid))),</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> xgrid, <span class="at">y =</span> pred))</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="mi-az-előbbiben-a-fantasztikus" class="level2" data-number="2.13">
+<h2 data-number="2.13" class="anchored" data-anchor-id="mi-az-előbbiben-a-fantasztikus"><span class="header-section-number">2.13</span> Mi az előbbiben a fantasztikus?</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>p <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">rbind</span>(<span class="fu">data.frame</span>(<span class="at">type =</span> <span class="st">"Ötödfokú polinom"</span>,</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">pred =</span> <span class="fu">predict</span>(fit5, <span class="fu">data.frame</span>(<span class="at">x =</span> xgrid)), xgrid),</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                           <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="st">"Tizedfokú polinom"</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">pred =</span> <span class="fu">predict</span>(fit10, <span class="fu">data.frame</span>(<span class="at">x =</span> xgrid)), xgrid),</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                           <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="st">"Spline"</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">pred =</span> <span class="fu">predict</span>(fitSpline, <span class="fu">data.frame</span>(<span class="at">x =</span> xgrid)),</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>                                      xgrid)),</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> xgrid, <span class="at">y =</span> pred, <span class="at">color =</span> type)) <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">color =</span> <span class="st">""</span>)</span></code><button title="Vágólapra másolás" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="spline_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="a-spline-regresszió-ereje" class="level2" data-number="2.14">
+<h2 data-number="2.14" class="anchored" data-anchor-id="a-spline-regresszió-ereje"><span class="header-section-number">2.14</span> A spline-regresszió ereje</h2>
+<p>Nem csak az a jó, hogy szépen illeszkedik (tulajdonképpen még annál is jobban, mint a tizedfokú polinom, még ott is, ahol az jól illeszkedik amúgy)</p>
+<p>…hanem, hogy – most már elárulhatom – <em>ez is ugyanúgy 10 rangú</em> mint a tizedfokú polinom!</p>
+<p>Mégis: nyoma nincs túlilleszkedésnek</p>
+
+
 </section>
 
 </main> <!-- /main -->
@@ -704,15 +880,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
+      <a href="./LOESS.html" class="pagination-link" aria-label="A LOESS simító">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">A LOESS simító</span></span>
+      </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./LOESS.html" class="pagination-link" aria-label="A LOESS simító">
-        <span class="nav-page-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">A LOESS simító</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="./spline-regresszio.html" class="pagination-link" aria-label="Spline-regresszió becslése bázisfüggvényekkel, penalizáltan">
+        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Spline-regresszió becslése bázisfüggvényekkel, penalizáltan</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
 </div> <!-- /content -->
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/edit/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/blob/main/index.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></div></div></footer><script type="text/javascript">
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/edit/main/spline.qmd" class="toc-action"><i class="bi bi-github"></i>Az oldal szerkesztése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/blob/main/spline.qmd" class="toc-action"><i class="bi empty"></i>Forráskód megtekintése</a></li><li><a href="https://github.com/ferenci-tamas/simitas-spline-additiv-modell/issues/new" class="toc-action"><i class="bi empty"></i>Észrevétel jelzése</a></li></ul></div></div></div></footer><script type="text/javascript">
 var sc_project=12422840; 
 var sc_invisible=1; 
 var sc_security="d32cce24"; 
